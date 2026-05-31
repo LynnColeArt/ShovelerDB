@@ -1,5 +1,10 @@
 const std = @import("std");
 
+pub const sql = struct {
+    pub const tokenizer = @import("sql/tokenizer.zig");
+    pub const policy = @import("sql/policy.zig");
+};
+
 pub const Project = struct {
     pub const name = "ShovelerDB";
     pub const dialect = "MariaDB-like SQL";
@@ -30,3 +35,7 @@ test "project policy is intentionally smaller than MariaDB" {
     try std.testing.expect(!FeaturePolicy.plugins);
 }
 
+test {
+    std.testing.refAllDecls(sql.tokenizer);
+    std.testing.refAllDecls(sql.policy);
+}

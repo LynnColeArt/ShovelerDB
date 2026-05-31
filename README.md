@@ -30,5 +30,18 @@ the parts of the SQL/database model that fit local agent memory workloads.
 
 ## Status
 
-This repository is a design and test-seeding scaffold. The engine does not exist yet.
+This repository is an early build scaffold. The engine does not exist yet, but
+the first dialect-policy code is in place.
 
+## First Commands
+
+```bash
+zig build test
+zig build run
+zig build run -- check-sql "CREATE TABLE memories (id INTEGER PRIMARY KEY, embedding VECTOR(4));"
+```
+
+The `check-sql` command currently performs a lightweight dialect-policy pass. It
+accepts the intended ShovelerDB surface and rejects early non-goals such as
+foreign keys, user-visible temporary tables, storage engine selection,
+replication/binlog statements, grants/users, and plugins.
