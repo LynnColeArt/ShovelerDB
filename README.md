@@ -39,9 +39,15 @@ the first dialect-policy code is in place.
 zig build test
 zig build run
 zig build run -- check-sql "CREATE TABLE memories (id INTEGER PRIMARY KEY, embedding VECTOR(4));"
+zig build run -- analyze-test references/mariadb/mysql-test/main/vector.test
 ```
 
 The `check-sql` command currently performs a lightweight dialect-policy pass. It
 accepts the intended ShovelerDB surface and rejects early non-goals such as
 foreign keys, user-visible temporary tables, storage engine selection,
 replication/binlog statements, grants/users, and plugins.
+
+The `analyze-test` command performs a first-pass analysis of imported MariaDB
+`.test` files. It counts candidate SQL statements, MTR directives, harness
+commands, expected errors, delimiter changes, and the first ShovelerDB policy
+rejection.

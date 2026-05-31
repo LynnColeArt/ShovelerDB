@@ -5,6 +5,10 @@ pub const sql = struct {
     pub const policy = @import("sql/policy.zig");
 };
 
+pub const mariadb = struct {
+    pub const test_analyzer = @import("mariadb/test_analyzer.zig");
+};
+
 pub const Project = struct {
     pub const name = "ShovelerDB";
     pub const dialect = "MariaDB-like SQL";
@@ -38,4 +42,5 @@ test "project policy is intentionally smaller than MariaDB" {
 test {
     std.testing.refAllDecls(sql.tokenizer);
     std.testing.refAllDecls(sql.policy);
+    std.testing.refAllDecls(mariadb.test_analyzer);
 }

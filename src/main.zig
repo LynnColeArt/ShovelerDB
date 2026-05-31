@@ -16,6 +16,7 @@ pub fn main(init: std.process.Init) !void {
             shovelerdb.Project.implementation_language,
         });
         try stdout.print("usage: shoveler check-sql <sql>\n", .{});
+        try stdout.print("       shoveler analyze-test <path>\n", .{});
         try stdout.flush();
         return;
     }
@@ -39,6 +40,45 @@ pub fn main(init: std.process.Init) !void {
         }
 
         try stdout.print("accepted\n", .{});
+        try stdout.flush();
+        return;
+    }
+
+    if (std.mem.eql(u8, args[1], "analyze-test")) {
+        if (args.len < 3) {
+            try stdout.print("usage: shoveler analyze-test <path>\n", .{});
+            try stdout.flush();
+            std.process.exit(64);
+        }
+
+        const path = args[2];
+        const contents = try std.Io.Dir.cwd().readFileAlloc(
+            io,
+            path,
+            arena,
+            .limited(100 * 1024 * 1024),
+        );
+        const analysis = try shovelerdb.mariadb.test_analyzer.analyze(arena, contents);
+
+        try stdout.print("{s}\n", .{path});
+        try stdout.print("  statements: {d}\n", .{analysis.statements});
+        try stdout.print("  accepted: {d}\n", .{analysis.accepted_statements});
+        try stdout.print("  rejected: {d}\n", .{analysis.rejected_statements});
+        try stdout.print("  directives: {d}\n", .{analysis.directives});
+        try stdout.print("  harness commands: {d}\n", .{analysis.harness_commands});
+        try stdout.print("  expected errors: {d}\n", .{analysis.expected_errors});
+        try stdout.print("  delimiter changes: {d}\n", .{analysis.delimiter_changes});
+        if (analysis.unterminated_statement) {
+            try stdout.print("  warning: unterminated statement\n", .{});
+        }
+        if (analysis.first_violation) |found| {
+            try stdout.print("  first rejection: {s} at line {d}, byte {d}, near `{s}`\n", .{
+                found.feature.label(),
+                found.line,
+                found.offset,
+                found.tokenText(),
+            });
+        }
         try stdout.flush();
         return;
     }
