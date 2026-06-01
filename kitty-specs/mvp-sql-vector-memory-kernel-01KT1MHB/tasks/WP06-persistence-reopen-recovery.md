@@ -11,12 +11,16 @@ tracker_refs: []
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-mvp-sql-vector-memory-kernel-01KT1MHB
+base_commit: d169c3a431020c83716a60865afdd464e2a514ff
+created_at: '2026-06-01T15:36:06.078596+00:00'
 subtasks:
 - T022
 - T023
 - T024
 - T025
-agent: codex
+agent: "codex"
+shell_pid: "2518125"
 history:
 - timestamp: '2026-06-01T13:10:41Z'
   agent: codex
@@ -145,3 +149,7 @@ persistence, close, reopen, and read it back.
 
 Review crash-conscious write ordering, validation behavior, and whether failed
 opens leave state untouched.
+
+## Activity Log
+
+- 2026-06-01T15:46:46Z – codex – shell_pid=2518125 – Ready for review: lane-f 008903f; zig test src/db/persistence.zig; zig test src/db/database.zig; zig build test; git diff --check.
