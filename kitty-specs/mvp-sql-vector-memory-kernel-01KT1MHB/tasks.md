@@ -79,10 +79,10 @@ Do not widen SQL acceptance before parser tests lock the new behavior.
 **Independent test**: catalog/value unit tests cover table metadata, vector dimensions, and typed diagnostics.
 **Estimated prompt size**: about 220 lines
 
-- [ ] T006 Define scalar/vector value representation (WP02)
-- [ ] T007 Define column and table metadata (WP02)
-- [ ] T008 Implement catalog object lifecycle (WP02)
-- [ ] T009 Add catalog/type diagnostics and tests (WP02)
+- [x] T006 Define scalar/vector value representation (WP02)
+- [x] T007 Define column and table metadata (WP02)
+- [x] T008 Implement catalog object lifecycle (WP02)
+- [x] T009 Add catalog/type diagnostics and tests (WP02)
 
 Implementation notes: do not entangle catalog storage with parser internals.
 This package should be usable by later executor, transaction, and persistence
