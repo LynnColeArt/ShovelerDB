@@ -1,8 +1,20 @@
 const std = @import("std");
 
 pub const sql = struct {
+    pub const ast = @import("sql/ast.zig");
+    pub const parser = @import("sql/parser.zig");
     pub const tokenizer = @import("sql/tokenizer.zig");
     pub const policy = @import("sql/policy.zig");
+};
+
+pub const db = struct {
+    pub const value = @import("db/value.zig");
+    pub const catalog = @import("db/catalog.zig");
+    pub const row_store = @import("db/row_store.zig");
+    pub const transaction = @import("db/transaction.zig");
+    pub const view = @import("db/view.zig");
+    pub const procedure = @import("db/procedure.zig");
+    pub const executor = @import("db/executor.zig");
 };
 
 pub const mariadb = struct {
@@ -41,8 +53,17 @@ test "project policy is intentionally smaller than MariaDB" {
 }
 
 test {
+    std.testing.refAllDecls(sql.ast);
+    std.testing.refAllDecls(sql.parser);
     std.testing.refAllDecls(sql.tokenizer);
     std.testing.refAllDecls(sql.policy);
+    std.testing.refAllDecls(db.value);
+    std.testing.refAllDecls(db.catalog);
+    std.testing.refAllDecls(db.row_store);
+    std.testing.refAllDecls(db.transaction);
+    std.testing.refAllDecls(db.view);
+    std.testing.refAllDecls(db.procedure);
+    std.testing.refAllDecls(db.executor);
     std.testing.refAllDecls(mariadb.test_analyzer);
     std.testing.refAllDecls(mariadb.test_classifier);
 }
