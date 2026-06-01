@@ -398,33 +398,47 @@ const Parser = struct {
     }
 
     fn parseExpression(self: *Parser) ParseError!ast.Expression {
-        var left = try self.parsePrimary();
+        return self.parseAndExpression();
+    }
 
-        while (self.matchKeyword("AND") or isComparisonStart(self.peek())) {
-            const operator = if (self.previousIsKeyword("AND"))
-                ast.BinaryOperator.and_op
-            else
-                try self.parseComparisonOperator();
-            const left_ptr = try self.allocator.create(ast.Expression);
-            errdefer self.allocator.destroy(left_ptr);
-            left_ptr.* = left;
-            const right_ptr = try self.allocator.create(ast.Expression);
-            errdefer {
-                left_ptr.deinit(self.allocator);
-                self.allocator.destroy(left_ptr);
-                self.allocator.destroy(right_ptr);
-            }
-            right_ptr.* = try self.parsePrimary();
-            left = .{
-                .binary = .{
-                    .left = left_ptr,
-                    .operator = operator,
-                    .right = right_ptr,
-                },
-            };
+    fn parseAndExpression(self: *Parser) ParseError!ast.Expression {
+        var left = try self.parseComparisonExpression();
+
+        while (self.matchKeyword("AND")) {
+            left = try self.makeBinary(left, .and_op, try self.parseComparisonExpression());
         }
 
         return left;
+    }
+
+    fn parseComparisonExpression(self: *Parser) ParseError!ast.Expression {
+        var left = try self.parsePrimary();
+
+        if (isComparisonStart(self.peek())) {
+            left = try self.makeBinary(left, try self.parseComparisonOperator(), try self.parsePrimary());
+        }
+
+        return left;
+    }
+
+    fn makeBinary(self: *Parser, left: ast.Expression, operator: ast.BinaryOperator, right: ast.Expression) ParseError!ast.Expression {
+        const left_ptr = try self.allocator.create(ast.Expression);
+        errdefer self.allocator.destroy(left_ptr);
+        left_ptr.* = left;
+        const right_ptr = try self.allocator.create(ast.Expression);
+        errdefer {
+            left_ptr.deinit(self.allocator);
+            self.allocator.destroy(left_ptr);
+            self.allocator.destroy(right_ptr);
+        }
+        right_ptr.* = right;
+        return .{
+            .binary = .{
+                .left = left_ptr,
+                .operator = operator,
+                .right = right_ptr,
+            },
+        };
     }
 
     fn parsePrimary(self: *Parser) ParseError!ast.Expression {
@@ -572,11 +586,6 @@ const Parser = struct {
         if (!token.eqlIgnoreCase(keyword)) return false;
         self.index += 1;
         return true;
-    }
-
-    fn previousIsKeyword(self: *Parser, keyword: []const u8) bool {
-        if (self.index == 0) return false;
-        return self.tokens[self.index - 1].eqlIgnoreCase(keyword);
     }
 
     fn expectSymbol(self: *Parser, symbol: []const u8) ParseError!void {
@@ -757,4 +766,16 @@ test "parser accepts negative scalar and vector numbers" {
 
     try std.testing.expectEqual(@as(i64, -1), result.statement.insert.values[0].literal.integer);
     try std.testing.expectEqual(@as(f64, -0.25), result.statement.insert.values[1].literal.vector[0]);
+}
+
+test "parser gives comparisons higher precedence than AND" {
+    const allocator = std.testing.allocator;
+
+    const result = try parse(allocator, "SELECT * FROM memories WHERE id = 1 AND body = 'hi';");
+    defer result.deinit(allocator);
+
+    const where_clause = result.statement.select.where_clause.?.binary;
+    try std.testing.expectEqual(ast.BinaryOperator.and_op, where_clause.operator);
+    try std.testing.expectEqual(ast.BinaryOperator.equal, where_clause.left.*.binary.operator);
+    try std.testing.expectEqual(ast.BinaryOperator.equal, where_clause.right.*.binary.operator);
 }
