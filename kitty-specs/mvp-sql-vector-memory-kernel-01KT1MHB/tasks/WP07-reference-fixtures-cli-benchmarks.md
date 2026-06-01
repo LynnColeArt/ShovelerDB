@@ -25,8 +25,8 @@ subtasks:
 - T027
 - T028
 - T029
-agent: "codex"
-shell_pid: "2539739"
+agent: "codex:gpt-5:reviewer-renata:reviewer"
+shell_pid: "1166952"
 history:
 - timestamp: '2026-06-01T13:10:41Z'
   agent: codex
@@ -164,3 +164,5 @@ is still meaningful.
 ## Activity Log
 
 - 2026-06-01T16:01:36Z – codex – shell_pid=2539739 – Ready for review: lane-g ef8075c; validation passed: zig build test; check-sql smoke; parse smoke; execute smoke; full corpus classify-test summary; benchmark --rows 10000 --vectors 1000 --dimensions 128; git diff --check.
+- 2026-06-01T16:02:00Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=1166952 – Started review via action command
+- 2026-06-01T16:03:07Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=1166952 – Review passed: WP07 commit ef8075c touches only owned CLI/docs/fixture files and leaves references/mariadb unchanged. Validation passed: zig build test; git diff --check; check-sql, parse, execute smokes; full corpus classify-test summary; benchmark --rows 10000 --vectors 1000 --dimensions 128.
