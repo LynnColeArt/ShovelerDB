@@ -37,6 +37,11 @@ const CteScope = struct {
     parent: ?*const CteScope = null,
 };
 
+const CteLookup = struct {
+    scope: *const CteScope,
+    index: usize,
+};
+
 const ColumnBinding = struct {
     name: []u8,
     labels: [][]u8,
@@ -178,8 +183,13 @@ fn executeSource(ctx: Context, source: ast.RowSource, scope: *const CteScope, de
 }
 
 fn executeNamedSource(ctx: Context, source: ast.TableSource, scope: *const CteScope, depth: usize) anyerror!RowSet {
-    if (findCte(scope, source.name)) |cte| {
-        var result = try executeSelectScoped(ctx, cte.query.*, scope.parent, depth + 1);
+    if (findCte(scope, source.name)) |lookup| {
+        const cte = lookup.scope.ctes[lookup.index];
+        const definition_scope = CteScope{
+            .ctes = lookup.scope.ctes[0..lookup.index],
+            .parent = lookup.scope.parent,
+        };
+        var result = try executeSelectScoped(ctx, cte.query.*, &definition_scope, depth + 1);
         defer deinitResultSet(ctx.allocator, &result);
         return rowSetFromResult(ctx.allocator, result, source.name, source.alias);
     }
@@ -321,11 +331,13 @@ fn sourceLabels(allocator: std.mem.Allocator, source_name: []const u8, alias: ?[
     return labels;
 }
 
-fn findCte(scope: *const CteScope, name: []const u8) ?ast.CommonTableExpression {
+fn findCte(scope: *const CteScope, name: []const u8) ?CteLookup {
     var current: ?*const CteScope = scope;
     while (current) |candidate_scope| {
-        for (candidate_scope.ctes) |cte| {
-            if (std.ascii.eqlIgnoreCase(cte.name, name)) return cte;
+        for (candidate_scope.ctes, 0..) |cte, index| {
+            if (std.ascii.eqlIgnoreCase(cte.name, name)) {
+                return .{ .scope = candidate_scope, .index = index };
+            }
         }
         current = candidate_scope.parent;
     }

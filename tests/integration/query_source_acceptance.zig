@@ -70,6 +70,28 @@ test "CTE join query supports qualified identifiers aliases vector filtering and
     try std.testing.expectEqual(@as(i64, 2), result.result_set.rows[1].values[0].integer);
 }
 
+test "CTE definitions can reference earlier non-recursive CTEs" {
+    const allocator = std.testing.allocator;
+    var fixture = try createFixture(allocator);
+    defer fixture.session.deinit();
+    defer fixture.db.deinit();
+
+    var result = try exec(&fixture.db, &fixture.session,
+        \\WITH base AS (
+        \\  SELECT id, body FROM memories
+        \\),
+        \\filtered AS (
+        \\  SELECT id, body FROM base WHERE id = 1
+        \\)
+        \\SELECT body FROM filtered;
+    );
+    defer result.deinit(allocator);
+
+    try std.testing.expectEqual(@as(usize, 1), result.result_set.rows.len);
+    try std.testing.expectEqualStrings("body", result.result_set.columns[0]);
+    try std.testing.expectEqualStrings("project plan", result.result_set.rows[0].values[0].text);
+}
+
 test "derived table left join keeps unmatched left rows as nulls" {
     const allocator = std.testing.allocator;
     var fixture = try createFixture(allocator);
