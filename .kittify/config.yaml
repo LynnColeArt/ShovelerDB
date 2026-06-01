@@ -1,0 +1,11 @@
+project:
+  uuid: 1e0859f9-1953-4435-aba9-a98b7cb3ca01
+  slug: shovelerdb
+  node_id: 752e6076aa27
+  build_id: d6d3691c-1086-4ab0-808f-388ca447eb53
+vcs:
+  type: git
+agents:
+  available:
+  - codex
+  auto_commit: true
