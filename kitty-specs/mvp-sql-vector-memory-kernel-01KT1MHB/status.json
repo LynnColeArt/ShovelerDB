@@ -1,7 +1,7 @@
 {
-  "event_count": 43,
-  "last_event_id": "01KT1YSBQ2A9NFPXCAQ7DNTE1X",
-  "materialized_at": "2026-06-01T16:03:07.106572+00:00",
+  "event_count": 46,
+  "last_event_id": "01KT206S7AVYAGDZ5MX7EM757Z",
+  "materialized_at": "2026-06-01T16:27:55.498387+00:00",
   "mission_number": "",
   "mission_slug": "mvp-sql-vector-memory-kernel-01KT1MHB",
   "mission_type": "software-dev",
@@ -11,10 +11,10 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 0,
+    "for_review": 1,
     "in_progress": 0,
     "in_review": 0,
-    "planned": 1
+    "planned": 0
   },
   "work_packages": {
     "WP01": {
@@ -67,11 +67,11 @@
       "last_transition_at": "2026-06-01T16:03:07.106572+00:00"
     },
     "WP08": {
-      "actor": "finalize-tasks",
+      "actor": "codex",
       "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KT1N7PG7TNS9TVBZKTPG6SKT",
-      "last_transition_at": "2026-06-01T13:16:11.143354+00:00"
+      "lane": "for_review",
+      "last_event_id": "01KT206S7AVYAGDZ5MX7EM757Z",
+      "last_transition_at": "2026-06-01T16:27:55.498387+00:00"
     }
   }
 }

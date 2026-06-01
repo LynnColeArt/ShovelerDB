@@ -181,10 +181,10 @@ fixtures under `tests/fixtures/mariadb-adapted/`.
 **Independent test**: full acceptance command list passes or failures are documented with focused fixes.
 **Estimated prompt size**: about 230 lines
 
-- [ ] T030 Wire library exports and build/test integration (WP08)
-- [ ] T031 Add end-to-end acceptance tests (WP08)
-- [ ] T032 Run acceptance commands and fix integration gaps (WP08)
-- [ ] T033 Keep Spec Kitty system notes report-ready (WP08)
+- [x] T030 Wire library exports and build/test integration (WP08)
+- [x] T031 Add end-to-end acceptance tests (WP08)
+- [x] T032 Run acceptance commands and fix integration gaps (WP08)
+- [x] T033 Keep Spec Kitty system notes report-ready (WP08)
 
 Implementation notes: this is the final integration package. It should not
 rewrite earlier components unless required to make the acceptance suite pass.

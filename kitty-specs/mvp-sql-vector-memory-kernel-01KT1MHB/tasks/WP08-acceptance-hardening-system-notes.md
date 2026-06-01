@@ -16,12 +16,16 @@ tracker_refs: []
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-mvp-sql-vector-memory-kernel-01KT1MHB
+base_commit: 16d861c3b494946faac7302573d3d78b7d0bc4fd
+created_at: '2026-06-01T16:19:57.294840+00:00'
 subtasks:
 - T030
 - T031
 - T032
 - T033
-agent: codex
+agent: "codex"
+shell_pid: '1166952'
 history:
 - timestamp: '2026-06-01T13:10:41Z'
   agent: codex
@@ -155,3 +159,7 @@ and report-readiness.
 
 Review the final user-visible behavior, acceptance commands, and Spec Kitty
 notes. This package decides whether the milestone is ready to merge.
+
+## Activity Log
+
+- 2026-06-01T16:27:55Z – codex – shell_pid=1166952 – WP08 lane 9fdea7a; validation passed: zig build test, check-sql smoke, full reference corpus classification, benchmark, CLI execute smoke, git diff --check.
