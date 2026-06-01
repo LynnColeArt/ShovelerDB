@@ -49,7 +49,7 @@ pub const ViewRegistry = struct {
 
     pub fn create(self: *ViewRegistry, name: []const u8, query: ast.SelectStatement) !void {
         if (self.findIndex(name) != null) return error.DuplicateObject;
-        if (query.from == null) return error.UnsupportedView;
+        if (query.source == null and query.from == null) return error.UnsupportedView;
 
         var stored = StoredView{
             .name = try self.allocator.dupe(u8, name),
@@ -82,7 +82,50 @@ pub const ViewRegistry = struct {
     }
 };
 
-pub fn cloneSelect(allocator: std.mem.Allocator, source: ast.SelectStatement) !ast.SelectStatement {
+pub fn cloneSelect(allocator: std.mem.Allocator, source: ast.SelectStatement) anyerror!ast.SelectStatement {
+    var ctes = try allocator.alloc(ast.CommonTableExpression, source.ctes.len);
+    errdefer allocator.free(ctes);
+
+    var cte_count: usize = 0;
+    errdefer {
+        for (ctes[0..cte_count]) |cte| cte.deinit(allocator);
+    }
+    for (source.ctes, 0..) |cte, index| {
+        var query: ?*ast.SelectStatement = try allocator.create(ast.SelectStatement);
+        errdefer if (query) |owned| allocator.destroy(owned);
+        query.?.* = try cloneSelect(allocator, cte.query.*);
+        errdefer if (query) |owned| owned.deinit(allocator);
+
+        ctes[index] = .{
+            .name = try allocator.dupe(u8, cte.name),
+            .query = query.?,
+        };
+        query = null;
+        cte_count += 1;
+    }
+
+    var projection_items = try allocator.alloc(ast.Projection, source.projection_items.len);
+    errdefer allocator.free(projection_items);
+
+    var projection_item_count: usize = 0;
+    errdefer {
+        for (projection_items[0..projection_item_count]) |projection| projection.deinit(allocator);
+    }
+    for (source.projection_items, 0..) |projection, index| {
+        var expression: ?ast.Expression = try cloneExpression(allocator, projection.expression);
+        errdefer if (expression) |expr| expr.deinit(allocator);
+        var alias: ?[]const u8 = if (projection.alias) |source_alias| try allocator.dupe(u8, source_alias) else null;
+        errdefer if (alias) |owned| allocator.free(owned);
+
+        projection_items[index] = .{
+            .expression = expression.?,
+            .alias = alias,
+        };
+        expression = null;
+        alias = null;
+        projection_item_count += 1;
+    }
+
     var projections = try allocator.alloc(ast.Expression, source.projections.len);
     errdefer allocator.free(projections);
 
@@ -98,6 +141,15 @@ pub fn cloneSelect(allocator: std.mem.Allocator, source: ast.SelectStatement) !a
     var from: ?[]const u8 = null;
     errdefer if (from) |owned| allocator.free(owned);
     if (source.from) |table| from = try allocator.dupe(u8, table);
+
+    var row_source: ?*ast.RowSource = null;
+    errdefer if (row_source) |owned| {
+        owned.deinit(allocator);
+        allocator.destroy(owned);
+    };
+    if (source.source) |owned_source| {
+        row_source = try cloneRowSourcePtr(allocator, owned_source.*);
+    }
 
     var where_clause: ?ast.Expression = null;
     errdefer if (where_clause) |expr| expr.deinit(allocator);
@@ -119,11 +171,72 @@ pub fn cloneSelect(allocator: std.mem.Allocator, source: ast.SelectStatement) !a
     }
 
     return .{
+        .ctes = ctes,
+        .projection_items = projection_items,
         .projections = projections,
         .from = from,
+        .source = row_source,
         .where_clause = where_clause,
         .order_by = order_by,
         .limit = source.limit,
+    };
+}
+
+fn cloneRowSourcePtr(allocator: std.mem.Allocator, source: ast.RowSource) anyerror!*ast.RowSource {
+    const cloned = try allocator.create(ast.RowSource);
+    errdefer allocator.destroy(cloned);
+    cloned.* = try cloneRowSource(allocator, source);
+    return cloned;
+}
+
+fn cloneRowSource(allocator: std.mem.Allocator, source: ast.RowSource) anyerror!ast.RowSource {
+    return switch (source) {
+        .base_table => |table| blk: {
+            var name: ?[]u8 = try allocator.dupe(u8, table.name);
+            errdefer if (name) |owned| allocator.free(owned);
+            var alias: ?[]u8 = if (table.alias) |source_alias| try allocator.dupe(u8, source_alias) else null;
+            errdefer if (alias) |owned| allocator.free(owned);
+            const owned_name = name.?;
+            name = null;
+            const owned_alias = alias;
+            alias = null;
+            break :blk .{ .base_table = .{
+                .name = owned_name,
+                .alias = owned_alias,
+            } };
+        },
+        .derived_table => |derived| blk: {
+            var query: ?*ast.SelectStatement = try allocator.create(ast.SelectStatement);
+            errdefer if (query) |owned| allocator.destroy(owned);
+            query.?.* = try cloneSelect(allocator, derived.query.*);
+            errdefer if (query) |owned| owned.deinit(allocator);
+            const alias = try allocator.dupe(u8, derived.alias);
+            errdefer allocator.free(alias);
+            const owned_query = query.?;
+            query = null;
+            break :blk .{ .derived_table = .{
+                .query = owned_query,
+                .alias = alias,
+            } };
+        },
+        .join => |join| blk: {
+            const left = try cloneRowSourcePtr(allocator, join.left.*);
+            errdefer {
+                left.deinit(allocator);
+                allocator.destroy(left);
+            }
+            const right = try cloneRowSourcePtr(allocator, join.right.*);
+            errdefer {
+                right.deinit(allocator);
+                allocator.destroy(right);
+            }
+            break :blk .{ .join = .{
+                .left = left,
+                .join_type = join.join_type,
+                .right = right,
+                .on = if (join.on) |on| try cloneExpression(allocator, on) else null,
+            } };
+        },
     };
 }
 

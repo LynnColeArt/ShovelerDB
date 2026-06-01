@@ -3,6 +3,7 @@ const ast = @import("../sql/ast.zig");
 const parser = @import("../sql/parser.zig");
 const catalog = @import("catalog.zig");
 const procedure = @import("procedure.zig");
+const query_source = @import("query_source.zig");
 const row_store = @import("row_store.zig");
 const transaction = @import("transaction.zig");
 const value = @import("value.zig");
@@ -15,6 +16,7 @@ pub const DiagnosticKind = enum {
     unknown_object,
     name_conflict,
     unknown_column,
+    ambiguous_column,
     column_count_mismatch,
     transaction_required,
     transaction_active,
@@ -36,6 +38,7 @@ pub fn diagnosticFromError(err: anyerror) ?DiagnosticKind {
         error.UnknownObject => .unknown_object,
         error.NameConflict => .name_conflict,
         error.UnknownColumn => .unknown_column,
+        error.AmbiguousColumn => .ambiguous_column,
         error.ColumnCountMismatch => .column_count_mismatch,
         error.TransactionRequired => .transaction_required,
         error.TransactionActive => .transaction_active,
@@ -294,54 +297,32 @@ pub const Database = struct {
     }
 
     fn executeSelect(self: *Database, session: *Session, statement: ast.SelectStatement) !ResultSet {
-        return self.executeSelectDepth(session, statement, 0);
-    }
-
-    fn executeSelectDepth(self: *Database, session: *Session, statement: ast.SelectStatement, depth: usize) !ResultSet {
-        const from = statement.from orelse return error.UnknownObject;
-        if (self.views.get(from)) |stored| {
-            if (depth >= 4 or !isSimpleViewDelegation(statement)) return error.UnsupportedView;
-            return self.executeSelectDepth(session, stored.query, depth + 1);
-        }
-
-        const table_state = self.getTableState(from) orelse return error.UnknownObject;
-        const table = table_state.store.table;
-        try validateSelectExpressions(table, statement);
-
-        const rows = try scanRowsForTable(self.allocator, session, table_state);
-        defer row_store.deinitRows(self.allocator, rows);
-
-        var indices: std.ArrayList(usize) = .empty;
-        defer indices.deinit(self.allocator);
-        for (rows, 0..) |row, index| {
-            if (try matchesWhere(self.allocator, table, row, statement.where_clause)) {
-                try indices.append(self.allocator, index);
-            }
-        }
-
-        try sortIndices(self.allocator, table, rows, indices.items, statement.order_by);
-
-        const row_limit = if (statement.limit) |limit| @min(limit, indices.items.len) else indices.items.len;
-        const columns = try resultColumns(self.allocator, table, statement.projections);
-        errdefer deinitColumns(self.allocator, columns);
-        const result_rows = try self.allocator.alloc(ResultRow, row_limit);
-        errdefer self.allocator.free(result_rows);
-
-        var built_rows: usize = 0;
+        var bridge = QuerySourceBridge{ .db = self, .session = session };
+        const result = try query_source.executeSelect(.{
+            .allocator = self.allocator,
+            .user_data = &bridge,
+            .load_base_table = loadBaseTableForQuerySource,
+            .find_view = findViewForQuerySource,
+        }, statement);
         errdefer {
-            for (result_rows[0..built_rows]) |*row| row.deinit(self.allocator);
+            deinitColumns(self.allocator, result.columns);
+            for (result.rows) |*row| {
+                deinitValues(self.allocator, row.values);
+                self.allocator.free(row.values);
+            }
+            self.allocator.free(result.rows);
         }
 
-        for (indices.items[0..row_limit], 0..) |row_index, out_index| {
-            result_rows[out_index] = .{
-                .values = try projectRow(self.allocator, table, rows[row_index], statement.projections),
-            };
-            built_rows += 1;
+        const rows = try self.allocator.alloc(ResultRow, result.rows.len);
+        errdefer self.allocator.free(rows);
+        for (result.rows, 0..) |row, index| {
+            rows[index] = .{ .values = row.values };
         }
+        self.allocator.free(result.rows);
 
         return .{
-            .columns = columns,
-            .rows = result_rows,
+            .columns = result.columns,
+            .rows = rows,
         };
     }
 
@@ -500,6 +481,27 @@ pub const Session = struct {
         self.transactions.clearRetainingCapacity();
     }
 };
+
+const QuerySourceBridge = struct {
+    db: *Database,
+    session: *Session,
+};
+
+fn loadBaseTableForQuerySource(user_data: *anyopaque, name: []const u8) !query_source.BaseTable {
+    const bridge: *QuerySourceBridge = @ptrCast(@alignCast(user_data));
+    const table_state = bridge.db.getTableState(name) orelse return error.UnknownObject;
+    return .{
+        .name = table_state.store.table.name,
+        .columns = table_state.store.table.columns,
+        .rows = try scanRowsForTable(bridge.db.allocator, bridge.session, table_state),
+    };
+}
+
+fn findViewForQuerySource(user_data: *anyopaque, name: []const u8) ?*const ast.SelectStatement {
+    const bridge: *QuerySourceBridge = @ptrCast(@alignCast(user_data));
+    const stored = bridge.db.views.get(name) orelse return null;
+    return &stored.query;
+}
 
 fn toCatalogColumnType(column_type: ast.ColumnType) !catalog.ColumnType {
     return switch (column_type) {
