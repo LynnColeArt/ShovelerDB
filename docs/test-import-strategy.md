@@ -60,3 +60,33 @@ version.
 3. Port behavior into native Zig tests under `tests/`.
 4. Record intentional incompatibilities in docs or a future manifest.
 5. Prefer behavior-level compatibility over source-level compatibility.
+
+## Native Fixture Promotion
+
+Promoted fixtures live under `tests/fixtures/mariadb-adapted/`. Each fixture is
+a descriptor, not a verbatim corpus copy. It must name the MariaDB source path,
+summarize the behavior being preserved, show the ShovelerDB-native smoke SQL,
+and list removed or deferred MariaDB behavior.
+
+The first promoted fixtures cover four evidence categories:
+
+- `vector-values.md`: vector column and vector literal behavior from
+  `mysql-test/main/vector.test`.
+- `view-basic.md`: single-table view behavior from `mysql-test/main/view.test`.
+- `procedure-single-statement.md`: procedure create/call/drop behavior from
+  `mysql-test/main/sp.test`.
+- `autoincrement-deferred.md`: stable identity evidence from
+  `mysql-test/main/insert_update_autoinc-7150.test`, adapted to explicit IDs
+  because SQL autoincrement syntax is not part of the MVP surface yet.
+
+Policy-rejected MariaDB files are still useful evidence. A rejection usually
+means the original file includes unsupported harness or server syntax such as
+`ENGINE=InnoDB`, temporary tables, grants, or replication controls. The behavior
+inside the file can still be promoted when the adapted fixture removes that
+syntax and records the delta.
+
+The full-corpus classifier remains the coarse survey command:
+
+```bash
+zig build run -- classify-test $(find references/mariadb -name '*.test' | sort)
+```

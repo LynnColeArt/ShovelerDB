@@ -1,9 +1,23 @@
 {
+  "accept_commit": "e3bbe9fa4e7c2dece8cacfb7d9dc1f7feaa809af",
+  "acceptance_history": [
+    {
+      "accept_commit": "e3bbe9fa4e7c2dece8cacfb7d9dc1f7feaa809af",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-06-01T16:37:10.124703+00:00",
+      "accepted_by": "lynn",
+      "accepted_from_commit": "d6ba9861c4848136a83af52291a80f71ea0a0a81"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-06-01T16:37:10.124703+00:00",
+  "accepted_by": "lynn",
+  "accepted_from_commit": "d6ba9861c4848136a83af52291a80f71ea0a0a81",
   "coordination_branch": "kitty/mission-mvp-sql-vector-memory-kernel-01KT1MHB",
   "created_at": "2026-06-01T13:03:58.546208+00:00",
   "friendly_name": "mvp sql vector memory kernel",
   "mission_id": "01KT1MHB2HYEZDS6VQM9CR0ED5",
-  "mission_number": null,
+  "mission_number": 1,
   "mission_slug": "mvp-sql-vector-memory-kernel-01KT1MHB",
   "mission_type": "software-dev",
   "purpose_context": "This mission advances mvp sql vector memory kernel on main so stakeholders can track the work from mission creation onward.",
