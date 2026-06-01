@@ -27,6 +27,7 @@ owned_files:
 - tests/integration/query_source_acceptance.zig
 role: implementer
 tags: []
+agent: "codex"
 ---
 
 # WP04 - Row-Source Executor
@@ -55,3 +56,7 @@ resolution, joins, CTEs, derived tables, and richer views.
 - Joined and derived queries produce deterministic column names and values.
 - Ambiguous or missing columns fail with typed diagnostics.
 - `zig build test` passes.
+
+## Activity Log
+
+- 2026-06-01T22:25:45Z – codex – shell_pid=1166952 – Done override: Reviewed lane commits 0084fb0 and b86fdb3, landed on main as 3e1f26a and 8d30bbc, and validated with zig build test, diff check, and CLI chained CTE smoke.
