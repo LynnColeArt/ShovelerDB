@@ -28,6 +28,7 @@ zig-out/
 .agent/
 .github/copilot/
 .worktrees/
+.spec-kitty/
 .kittify/.dashboard
 .kittify/charter/context-state.json
 .kittify/charter/directives.yaml
