@@ -9,5 +9,7 @@
   "purpose_context": "This mission advances mysql style syntax completion on main so stakeholders can track the work from mission creation onward.",
   "purpose_tldr": "mysql style syntax completion",
   "slug": "mysql-style-syntax-completion-01KT2G5Z",
-  "target_branch": "main"
+  "target_branch": "main",
+  "vcs": "git",
+  "vcs_locked_at": "2026-06-01T21:59:00.513662+00:00"
 }
