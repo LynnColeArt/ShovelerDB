@@ -7,6 +7,7 @@ const row_store = @import("row_store.zig");
 const transaction = @import("transaction.zig");
 const value = @import("value.zig");
 const view = @import("view.zig");
+const vector_distance = @import("../vector/distance.zig");
 
 pub const DiagnosticKind = enum {
     parse_diagnostic,
@@ -25,6 +26,7 @@ pub const DiagnosticKind = enum {
     unsupported_view,
     unsupported_procedure,
     transaction_closed,
+    zero_vector,
 };
 
 pub fn diagnosticFromError(err: anyerror) ?DiagnosticKind {
@@ -45,6 +47,7 @@ pub fn diagnosticFromError(err: anyerror) ?DiagnosticKind {
         error.UnsupportedView => .unsupported_view,
         error.UnsupportedProcedure => .unsupported_procedure,
         error.AlreadyCommitted, error.AlreadyRolledBack => .transaction_closed,
+        error.ZeroVector => .zero_vector,
         else => null,
     };
 }
@@ -557,7 +560,9 @@ fn validateExpressionColumns(table: *const catalog.TableDef, expression: ast.Exp
             try validateExpressionColumns(table, binary.left.*);
             try validateExpressionColumns(table, binary.right.*);
         },
-        .function_call => return error.UnsupportedExpression,
+        .function_call => |call| {
+            for (call.args) |arg| try validateExpressionColumns(table, arg);
+        },
     }
 }
 
@@ -671,8 +676,60 @@ fn evalExpression(
             break :blk try row.values[index].clone(allocator);
         },
         .binary => |binary| try evalBinary(allocator, table, row, binary),
-        .function_call, .star => error.UnsupportedExpression,
+        .function_call => |call| try evalFunctionCall(allocator, table, row, call),
+        .star => error.UnsupportedExpression,
     };
+}
+
+fn evalFunctionCall(
+    allocator: std.mem.Allocator,
+    table: *const catalog.TableDef,
+    row: row_store.Row,
+    call: ast.FunctionCall,
+) anyerror!value.Value {
+    if (isBuiltin(call.name, "l2_distance")) {
+        return .{ .float = try evalVectorDistanceFunction(allocator, table, row, call, .l2) };
+    }
+    if (isBuiltin(call.name, "squared_l2_distance")) {
+        return .{ .float = try evalVectorDistanceFunction(allocator, table, row, call, .squared_l2) };
+    }
+    if (isBuiltin(call.name, "cosine_distance")) {
+        return .{ .float = try evalVectorDistanceFunction(allocator, table, row, call, .cosine) };
+    }
+    return error.UnsupportedExpression;
+}
+
+const VectorDistanceFunction = enum {
+    l2,
+    squared_l2,
+    cosine,
+};
+
+fn evalVectorDistanceFunction(
+    allocator: std.mem.Allocator,
+    table: *const catalog.TableDef,
+    row: row_store.Row,
+    call: ast.FunctionCall,
+    function: VectorDistanceFunction,
+) anyerror!f64 {
+    if (call.args.len != 2) return error.UnsupportedExpression;
+
+    var left = try evalExpression(allocator, table, row, call.args[0]);
+    defer left.deinit(allocator);
+    var right = try evalExpression(allocator, table, row, call.args[1]);
+    defer right.deinit(allocator);
+
+    if (left != .vector or right != .vector) return error.TypeMismatch;
+
+    return switch (function) {
+        .l2 => try vector_distance.l2(left.vector.values, right.vector.values),
+        .squared_l2 => try vector_distance.squaredL2(left.vector.values, right.vector.values),
+        .cosine => try vector_distance.cosineDistance(left.vector.values, right.vector.values),
+    };
+}
+
+fn isBuiltin(actual: []const u8, expected: []const u8) bool {
+    return std.ascii.eqlIgnoreCase(actual, expected);
 }
 
 fn evalBinary(
@@ -905,6 +962,64 @@ test "executor updates deletes orders and limits rows" {
     try std.testing.expectEqual(@as(usize, 1), result.result_set.rows.len);
     try std.testing.expectEqual(@as(i64, 2), result.result_set.rows[0].values[0].integer);
     try std.testing.expectEqualStrings("updated", result.result_set.rows[0].values[1].text);
+}
+
+test "executor evaluates vector distance functions in projection filter and ordering" {
+    const allocator = std.testing.allocator;
+
+    var db = Database.init(allocator);
+    defer db.deinit();
+    var session = Session.init(allocator);
+    defer session.deinit();
+
+    var result = try db.executeSql(&session, "CREATE TABLE memories (id INTEGER, body TEXT, embedding VECTOR(2));");
+    result.deinit(allocator);
+    result = try db.executeSql(&session, "BEGIN;");
+    result.deinit(allocator);
+    result = try db.executeSql(&session, "INSERT INTO memories VALUES (1, 'origin', [1, 0]);");
+    result.deinit(allocator);
+    result = try db.executeSql(&session, "INSERT INTO memories VALUES (2, 'side', [0, 1]);");
+    result.deinit(allocator);
+    result = try db.executeSql(&session, "INSERT INTO memories VALUES (3, 'near', [2, 0]);");
+    result.deinit(allocator);
+
+    result = try db.executeSql(
+        &session,
+        "SELECT id, l2_distance(embedding, [1, 0]) FROM memories ORDER BY l2_distance(embedding, [1, 0]) ASC LIMIT 2;",
+    );
+    try std.testing.expectEqual(@as(usize, 2), result.result_set.rows.len);
+    try std.testing.expectEqualStrings("l2_distance", result.result_set.columns[1]);
+    try std.testing.expectEqual(@as(i64, 1), result.result_set.rows[0].values[0].integer);
+    try std.testing.expectApproxEqAbs(@as(f64, 0.0), result.result_set.rows[0].values[1].float, 0.000001);
+    try std.testing.expectEqual(@as(i64, 3), result.result_set.rows[1].values[0].integer);
+    try std.testing.expectApproxEqAbs(@as(f64, 1.0), result.result_set.rows[1].values[1].float, 0.000001);
+    result.deinit(allocator);
+
+    result = try db.executeSql(
+        &session,
+        "SELECT id FROM memories WHERE squared_l2_distance(embedding, [1, 0]) < 1.1 ORDER BY id ASC;",
+    );
+    try std.testing.expectEqual(@as(usize, 2), result.result_set.rows.len);
+    try std.testing.expectEqual(@as(i64, 1), result.result_set.rows[0].values[0].integer);
+    try std.testing.expectEqual(@as(i64, 3), result.result_set.rows[1].values[0].integer);
+    result.deinit(allocator);
+
+    result = try db.executeSql(
+        &session,
+        "SELECT cosine_distance(embedding, [1, 0]) FROM memories WHERE id = 2;",
+    );
+    try std.testing.expectEqual(@as(usize, 1), result.result_set.rows.len);
+    try std.testing.expectApproxEqAbs(@as(f64, 1.0), result.result_set.rows[0].values[0].float, 0.000001);
+    result.deinit(allocator);
+
+    try std.testing.expectError(
+        error.VectorDimensionMismatch,
+        db.executeSql(&session, "SELECT l2_distance(embedding, [1, 0, 0]) FROM memories;"),
+    );
+    try std.testing.expectError(
+        error.UnsupportedExpression,
+        db.executeSql(&session, "SELECT made_up_distance(embedding, [1, 0]) FROM memories;"),
+    );
 }
 
 test "executor registers queries and drops views" {

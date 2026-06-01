@@ -27,6 +27,7 @@ pub const vector = struct {
 pub const mariadb = struct {
     pub const test_analyzer = @import("mariadb/test_analyzer.zig");
     pub const test_classifier = @import("mariadb/test_classifier.zig");
+    pub const mtr_lite = @import("mariadb/mtr_lite.zig");
 };
 
 pub const Project = struct {
@@ -77,4 +78,5 @@ test {
     std.testing.refAllDecls(vector.search);
     std.testing.refAllDecls(mariadb.test_analyzer);
     std.testing.refAllDecls(mariadb.test_classifier);
+    std.testing.refAllDecls(mariadb.mtr_lite);
 }

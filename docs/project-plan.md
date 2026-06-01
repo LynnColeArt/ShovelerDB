@@ -1,8 +1,16 @@
 # ShovelerDB Project Plan
 
+Current roadmap position: the MVP SQL/vector memory kernel mission completed on
+2026-06-01. ShovelerDB now has a Zig library/CLI, SQL policy and parser,
+in-memory row storage, transaction sessions, basic DDL/DML execution, constrained
+views and procedures, vector values/helpers, snapshot persistence, adapted
+fixture descriptors, CLI smokes, and benchmark coverage. The active follow-up
+mission is `mysql-style-syntax-completion-01KT2G5Z`, which turns the remaining
+"supported by design" SQL syntax into tested behavior or explicit rejections.
+
 ## Phase 0: Repository Foundation
 
-Status: started.
+Status: complete.
 
 - Create the Zig project skeleton.
 - Create documentation for the proposal, dialect, and test strategy.
@@ -17,6 +25,8 @@ Exit criteria:
 - MariaDB reference tests are present under `references/mariadb/`.
 
 ## Phase 1: Test Import and Classification
+
+Status: complete for the initial corpus; continuing as syntax expands.
 
 Goal: turn MariaDB tests into an actionable ShovelerDB roadmap.
 
@@ -37,6 +47,8 @@ Exit criteria:
 
 ## Phase 2: MTR-Lite Runner
 
+Status: started; the skeleton runner executes adapted fixture descriptors.
+
 Goal: run a useful subset of MariaDB SQL regression tests against ShovelerDB.
 
 Tasks:
@@ -53,6 +65,8 @@ Exit criteria:
 - Unsupported directives are reported with reasons.
 
 ## Phase 3: Minimal SQL Core
+
+Status: complete for the MVP kernel.
 
 Goal: build the smallest SQL path that can execute real statements.
 
@@ -72,6 +86,10 @@ Exit criteria:
 
 ## Phase 4: Vector MVP
 
+Status: partially complete; SQL-level vector distance functions now execute in
+projection, filtering, and ordering, while vector index/planner optimization
+remains future work.
+
 Goal: make vectors a core type, not an add-on.
 
 Tasks:
@@ -89,6 +107,8 @@ Exit criteria:
 
 ## Phase 5: Embedded Filesystem Store
 
+Status: complete for the MVP snapshot/reopen path.
+
 Goal: move from in-memory prototype to local durable database path.
 
 Tasks:
@@ -105,6 +125,8 @@ Exit criteria:
 - Failed saves do not corrupt the previous durable generation.
 
 ## Phase 6: Concurrency Model
+
+Status: planned.
 
 Goal: make ShovelerDB useful as an agent memory kernel.
 
@@ -124,6 +146,10 @@ Exit criteria:
 
 ## Phase 7: Views and Procedures
 
+Status: partially complete; simple views and single-statement procedures work,
+while richer view expansion and procedure control flow are in the active
+syntax-completion mission.
+
 Goal: support reusable schema logic without reintroducing server baggage.
 
 Tasks:
@@ -140,6 +166,8 @@ Exit criteria:
 
 ## Phase 8: Performance Discipline
 
+Status: started.
+
 Goal: make speed measurable from the beginning.
 
 Tasks:
@@ -154,4 +182,3 @@ Exit criteria:
 
 - Every major feature lands with a benchmark.
 - Performance regressions are visible in CI.
-

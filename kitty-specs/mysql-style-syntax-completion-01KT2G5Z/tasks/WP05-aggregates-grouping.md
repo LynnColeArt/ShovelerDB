@@ -1,0 +1,45 @@
+---
+work_package_id: WP05
+title: Aggregates and Grouping
+dependencies:
+- WP04
+requirement_refs:
+- FR-011
+- FR-016
+- FR-019
+tracker_refs: []
+planning_base_branch: main
+merge_target_branch: main
+branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+subtasks: []
+history: []
+agent_profile: implementer-ivan
+authoritative_surface: src/db/aggregate.zig
+execution_mode: code_change
+owned_files:
+- src/db/aggregate.zig
+- tests/integration/aggregate_acceptance.zig
+role: implementer
+tags: []
+---
+
+# WP05 - Aggregates and Grouping
+
+## Objective
+
+Add aggregate execution for practical reporting queries.
+
+## Tasks
+
+1. Parse `GROUP BY` and `HAVING`.
+2. Execute `COUNT`, `SUM`, `AVG`, `MIN`, and `MAX`.
+3. Reject non-grouped projections that are neither aggregate nor grouped keys.
+4. Add grouped query tests and benchmark coverage for grouped scans.
+5. Coordinate parser/executor integration edits through review after the
+   aggregate module owns the grouped-row behavior.
+
+## Definition of Done
+
+- The grouped-query example from the spec passes.
+- Invalid aggregate/grouping mixes produce explicit diagnostics.
+- `zig build test` passes.

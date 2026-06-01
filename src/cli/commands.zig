@@ -6,6 +6,7 @@ const executor = shovelerdb.db.executor;
 const value = shovelerdb.db.value;
 const test_analyzer = shovelerdb.mariadb.test_analyzer;
 const test_classifier = shovelerdb.mariadb.test_classifier;
+const mtr_lite = shovelerdb.mariadb.mtr_lite;
 const parser = shovelerdb.sql.parser;
 const policy = shovelerdb.sql.policy;
 
@@ -57,6 +58,7 @@ pub fn run(init: std.process.Init) !void {
     if (std.mem.eql(u8, args[1], "execute")) return executeSql(arena, stdout, args);
     if (std.mem.eql(u8, args[1], "analyze-test")) return analyzeTest(io, arena, stdout, args);
     if (std.mem.eql(u8, args[1], "classify-test")) return classifyTests(io, arena, stdout, args);
+    if (std.mem.eql(u8, args[1], "run-adapted-test")) return runAdaptedTest(io, arena, stdout, args);
     if (std.mem.eql(u8, args[1], "benchmark")) return runBenchmark(io, arena, stdout, args);
 
     try stdout.print("unknown command: {s}\n", .{args[1]});
@@ -71,6 +73,7 @@ pub fn printUsage(stdout: *std.Io.Writer) !void {
     try stdout.print("       shoveler execute <sql> [sql...]\n", .{});
     try stdout.print("       shoveler analyze-test <path>\n", .{});
     try stdout.print("       shoveler classify-test <path> [path...]\n", .{});
+    try stdout.print("       shoveler run-adapted-test <fixture.md>\n", .{});
     try stdout.print("       shoveler benchmark [--rows N] [--vectors N] [--dimensions N] [--operations N]\n", .{});
 }
 
@@ -261,6 +264,42 @@ fn runBenchmark(
         try stdout.flush();
         std.process.exit(2);
     };
+    try stdout.flush();
+}
+
+fn runAdaptedTest(
+    io: std.Io,
+    allocator: std.mem.Allocator,
+    stdout: *std.Io.Writer,
+    args: []const []const u8,
+) !void {
+    if (args.len < 3) {
+        try stdout.print("usage: shoveler run-adapted-test <fixture.md>\n", .{});
+        try stdout.flush();
+        std.process.exit(64);
+    }
+
+    const path = args[2];
+    const contents = try std.Io.Dir.cwd().readFileAlloc(
+        io,
+        path,
+        allocator,
+        .limited(100 * 1024 * 1024),
+    );
+
+    const summary = mtr_lite.runMarkdownFixture(allocator, contents) catch |err| {
+        try stdout.print("fixture error: {s}\n", .{@errorName(err)});
+        if (mtr_lite.diagnosticFromError(err)) |diagnostic| {
+            try stdout.print("diagnostic: {s}\n", .{@tagName(diagnostic)});
+        }
+        try stdout.flush();
+        std.process.exit(2);
+    };
+
+    try stdout.print("{s}\n", .{path});
+    try stdout.print("  statements: {d}\n", .{summary.statements});
+    try stdout.print("  executed: {d}\n", .{summary.executed});
+    try stdout.print("  expected errors: {d}\n", .{summary.expected_errors});
     try stdout.flush();
 }
 

@@ -78,6 +78,8 @@ The first promoted fixtures cover four evidence categories:
 - `autoincrement-deferred.md`: stable identity evidence from
   `mysql-test/main/insert_update_autoinc-7150.test`, adapted to explicit IDs
   because SQL autoincrement syntax is not part of the MVP surface yet.
+- `vector-distance-functions.md`: SQL-callable vector distance behavior from
+  `mysql-test/main/vector_funcs.test`.
 
 Policy-rejected MariaDB files are still useful evidence. A rejection usually
 means the original file includes unsupported harness or server syntax such as
@@ -89,4 +91,31 @@ The full-corpus classifier remains the coarse survey command:
 
 ```bash
 zig build run -- classify-test $(find references/mariadb -name '*.test' | sort)
+```
+
+## MTR-Lite Runner
+
+The syntax-completion mission added an MTR-lite runner skeleton for adapted
+fixtures. The runner executes ShovelerDB-native SQL fragments from fenced SQL
+blocks through the embedded engine and rejects unsupported MariaDB harness
+directives with clear reasons. Result comparison is still a follow-up once
+fixtures carry expected rows in a structured format.
+
+Current accepted runner features:
+
+- plain SQL statement execution
+- statement-level expected errors when the adapted fixture intentionally proves
+  a rejection
+- explicit diagnostics for unsupported directives such as server restarts,
+  connection choreography, replication controls, delimiter tricks that have not
+  been adapted, or filesystem/server harness commands
+
+The runner should operate on adapted fixture descriptors first. Original
+MariaDB files under `references/mariadb/` remain preserved evidence and should
+not be mutated.
+
+Example:
+
+```bash
+zig build run -- run-adapted-test tests/fixtures/mariadb-adapted/vector-distance-functions.md
 ```

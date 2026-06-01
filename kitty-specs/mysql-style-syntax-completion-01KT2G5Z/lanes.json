@@ -1,0 +1,181 @@
+{
+  "version": 1,
+  "mission_slug": "mysql-style-syntax-completion-01KT2G5Z",
+  "mission_id": "01KT2G5Z6G9XXZG2ZT6HWDF307",
+  "mission_branch": "kitty/mission-mysql-style-syntax-completion-01KT2G5Z",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "docs/project-plan.md",
+        "docs/reference-corpus-snapshot.md",
+        "docs/sql-dialect.md",
+        "docs/test-import-strategy.md",
+        "src/cli/commands.zig",
+        "src/mariadb/mtr_lite.zig"
+      ],
+      "predicted_surfaces": [],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "src/db/executor.zig",
+        "tests/fixtures/mariadb-adapted/vector-distance-functions.md",
+        "tests/integration/kernel_acceptance.zig"
+      ],
+      "predicted_surfaces": [
+        "tests"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "src/sql/ast.zig",
+        "src/sql/parser.zig",
+        "src/sql/policy.zig"
+      ],
+      "predicted_surfaces": [],
+      "depends_on_lanes": [
+        "lane-b"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "src/db/query_source.zig",
+        "tests/integration/query_source_acceptance.zig"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tests"
+      ],
+      "depends_on_lanes": [
+        "lane-c"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-f",
+      "wp_ids": [
+        "WP06"
+      ],
+      "write_scope": [
+        "src/db/catalog.zig",
+        "src/db/ddl.zig",
+        "tests/integration/ddl_acceptance.zig"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-c"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "src/db/aggregate.zig",
+        "tests/integration/aggregate_acceptance.zig"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-d"
+      ],
+      "parallel_group": 3
+    },
+    {
+      "lane_id": "lane-g",
+      "wp_ids": [
+        "WP07"
+      ],
+      "write_scope": [
+        "src/db/procedure.zig",
+        "src/sql/procedure_body.zig",
+        "tests/integration/procedure_acceptance.zig"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-b",
+        "lane-d",
+        "lane-f"
+      ],
+      "parallel_group": 3
+    },
+    {
+      "lane_id": "lane-h",
+      "wp_ids": [
+        "WP08"
+      ],
+      "write_scope": [
+        "docs/reference-corpus-syntax-refresh.md",
+        "tests/fixtures/mariadb-adapted/grouping-aggregates.md",
+        "tests/fixtures/mariadb-adapted/procedure-control-flow.md",
+        "tests/fixtures/mariadb-adapted/query-syntax.md"
+      ],
+      "predicted_surfaces": [
+        "tests"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b",
+        "lane-d",
+        "lane-e",
+        "lane-f",
+        "lane-g"
+      ],
+      "parallel_group": 4
+    },
+    {
+      "lane_id": "lane-i",
+      "wp_ids": [
+        "WP09"
+      ],
+      "write_scope": [
+        "docs/acceptance-syntax-completion.md",
+        "docs/spec-kitty-system-notes.md"
+      ],
+      "predicted_surfaces": [],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b",
+        "lane-c",
+        "lane-d",
+        "lane-e",
+        "lane-f",
+        "lane-g",
+        "lane-h"
+      ],
+      "parallel_group": 5
+    }
+  ],
+  "computed_at": "2026-06-01T21:18:09.331122+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}

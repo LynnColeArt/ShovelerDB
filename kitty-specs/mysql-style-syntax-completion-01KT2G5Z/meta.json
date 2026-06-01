@@ -1,0 +1,13 @@
+{
+  "coordination_branch": "kitty/mission-mysql-style-syntax-completion-01KT2G5Z",
+  "created_at": "2026-06-01T21:07:06.065266+00:00",
+  "friendly_name": "mysql style syntax completion",
+  "mission_id": "01KT2G5Z6G9XXZG2ZT6HWDF307",
+  "mission_number": null,
+  "mission_slug": "mysql-style-syntax-completion-01KT2G5Z",
+  "mission_type": "software-dev",
+  "purpose_context": "This mission advances mysql style syntax completion on main so stakeholders can track the work from mission creation onward.",
+  "purpose_tldr": "mysql style syntax completion",
+  "slug": "mysql-style-syntax-completion-01KT2G5Z",
+  "target_branch": "main"
+}

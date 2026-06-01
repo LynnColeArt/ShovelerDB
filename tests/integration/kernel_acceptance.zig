@@ -4,7 +4,6 @@ const shovelerdb = @import("shovelerdb");
 const executor = shovelerdb.db.executor;
 const persistent = shovelerdb.db.database;
 const row_store = shovelerdb.db.row_store;
-const search = shovelerdb.vector.search;
 const value = shovelerdb.db.value;
 
 test "embedded SQL kernel handles transactions views procedures and vector search" {
@@ -53,25 +52,15 @@ test "embedded SQL kernel handles transactions views procedures and vector searc
     try std.testing.expectEqualStrings("from proc", result.result_set.rows[0].values[1].text);
     result.deinit(allocator);
 
-    result = try db.executeSql(&session, "SELECT id, embedding FROM memories ORDER BY id ASC;");
+    result = try db.executeSql(
+        &session,
+        "SELECT id, l2_distance(embedding, [1, 0]) FROM memories ORDER BY l2_distance(embedding, [1, 0]) ASC LIMIT 1;",
+    );
     defer result.deinit(allocator);
-    try std.testing.expectEqual(@as(usize, 2), result.result_set.rows.len);
-
-    const candidates = [_]search.Candidate{
-        .{
-            .key = @as(u64, @intCast(result.result_set.rows[0].values[0].integer)),
-            .vector = result.result_set.rows[0].values[1].vector.values,
-        },
-        .{
-            .key = @as(u64, @intCast(result.result_set.rows[1].values[0].integer)),
-            .vector = result.result_set.rows[1].values[1].vector.values,
-        },
-    };
-    const nearest = try search.topK(allocator, &.{ 1, 0 }, &candidates, 1, .squared_l2);
-    defer allocator.free(nearest);
-
-    try std.testing.expectEqual(@as(usize, 1), nearest.len);
-    try std.testing.expectEqual(@as(u64, 1), nearest[0].key);
+    try std.testing.expectEqual(@as(usize, 1), result.result_set.rows.len);
+    try std.testing.expectEqualStrings("l2_distance", result.result_set.columns[1]);
+    try std.testing.expectEqual(@as(i64, 1), result.result_set.rows[0].values[0].integer);
+    try std.testing.expectApproxEqAbs(@as(f64, 0.0), result.result_set.rows[0].values[1].float, 0.000001);
 }
 
 test "embedded persistence API reopens committed table rows" {

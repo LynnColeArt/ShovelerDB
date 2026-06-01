@@ -94,6 +94,7 @@ rewriting behavior into ShovelerDB's supported surface:
 ```text
 tests/fixtures/mariadb-adapted/autoincrement-deferred.md
 tests/fixtures/mariadb-adapted/procedure-single-statement.md
+tests/fixtures/mariadb-adapted/vector-distance-functions.md
 tests/fixtures/mariadb-adapted/vector-values.md
 tests/fixtures/mariadb-adapted/view-basic.md
 ```
@@ -101,3 +102,19 @@ tests/fixtures/mariadb-adapted/view-basic.md
 The classifier output above is unchanged by these descriptors because they do
 not modify `references/mariadb/`; they are the bridge between reference evidence
 and native acceptance tests.
+
+## Execution Status
+
+Promoted fixtures are now executable through the MTR-lite skeleton:
+
+```bash
+zig build run -- run-adapted-test tests/fixtures/mariadb-adapted/vector-values.md
+zig build run -- run-adapted-test tests/fixtures/mariadb-adapted/view-basic.md
+zig build run -- run-adapted-test tests/fixtures/mariadb-adapted/procedure-single-statement.md
+zig build run -- run-adapted-test tests/fixtures/mariadb-adapted/autoincrement-deferred.md
+zig build run -- run-adapted-test tests/fixtures/mariadb-adapted/vector-distance-functions.md
+```
+
+The syntax-completion mission is still responsible for promoting alias, join,
+CTE, grouping, DDL, and richer stored-procedure cases into executable adapted
+coverage as those features land.

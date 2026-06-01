@@ -1,0 +1,51 @@
+---
+work_package_id: WP08
+title: Adapted MariaDB Fixture Execution
+dependencies:
+- WP01
+- WP02
+- WP04
+- WP05
+- WP06
+- WP07
+requirement_refs:
+- FR-002
+- FR-017
+- FR-018
+tracker_refs: []
+planning_base_branch: main
+merge_target_branch: main
+branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+subtasks: []
+history: []
+agent_profile: implementer-ivan
+authoritative_surface: tests/fixtures/mariadb-adapted/query-syntax.md
+execution_mode: code_change
+owned_files:
+- tests/fixtures/mariadb-adapted/query-syntax.md
+- tests/fixtures/mariadb-adapted/procedure-control-flow.md
+- tests/fixtures/mariadb-adapted/grouping-aggregates.md
+- docs/reference-corpus-syntax-refresh.md
+role: implementer
+tags: []
+---
+
+# WP08 - Adapted MariaDB Fixture Execution
+
+## Objective
+
+Promote accepted reference fixtures into executable regression coverage.
+
+## Tasks
+
+1. Convert newly supported syntax examples into adapted fixture descriptors.
+2. Execute accepted fixture SQL through MTR-lite.
+3. Record rejected/deferred reference cases with reasons.
+4. Refresh `docs/reference-corpus-snapshot.md`.
+
+## Definition of Done
+
+- At least one accepted adapted fixture is executed by the test suite.
+- Unsupported harness directives are reported, not skipped invisibly.
+- Corpus docs match the current classified and executable counts.
+- `zig build test` passes.
