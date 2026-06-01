@@ -132,9 +132,9 @@ program syntax clearly instead of building a full MariaDB stored-program VM.
 **Independent test**: vector distance helpers produce exact expected distances and ordering.
 **Estimated prompt size**: about 200 lines
 
-- [ ] T019 Implement vector distance functions (WP05)
-- [ ] T020 Implement exact vector search helpers (WP05)
-- [ ] T021 Add vector validation and ordering tests (WP05)
+- [x] T019 Implement vector distance functions (WP05)
+- [x] T020 Implement exact vector search helpers (WP05)
+- [x] T021 Add vector validation and ordering tests (WP05)
 
 Implementation notes: exact scan only. ANN indexes are intentionally deferred.
 

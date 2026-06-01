@@ -10,11 +10,15 @@ tracker_refs: []
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-mvp-sql-vector-memory-kernel-01KT1MHB
+base_commit: 600a750f8d6ee892c959ae608affe708d3ea5a58
+created_at: '2026-06-01T14:45:26.670657+00:00'
 subtasks:
 - T019
 - T020
 - T021
-agent: codex
+agent: "codex"
+shell_pid: '1166952'
 history:
 - timestamp: '2026-06-01T13:10:41Z'
   agent: codex
@@ -123,3 +127,7 @@ than candidate count.
 
 Review math correctness, edge cases, and allocator behavior. Confirm this stays
 an exact-scan baseline.
+
+## Activity Log
+
+- 2026-06-01T14:47:24Z – codex – shell_pid=1166952 – WP05 implementation committed in lane-e at 9def588; validation passed: zig test src/vector/distance.zig, zig test src/vector/search.zig, git diff --check.
