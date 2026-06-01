@@ -97,10 +97,10 @@ packages.
 **Independent test**: two-session transaction tests prove rollback and commit visibility.
 **Estimated prompt size**: about 230 lines
 
-- [ ] T010 Build table row storage primitives (WP03)
-- [ ] T011 Add transaction-local mutation tracking (WP03)
-- [ ] T012 Implement begin, commit, and rollback visibility (WP03)
-- [ ] T013 Add multi-session transaction tests (WP03)
+- [x] T010 Build table row storage primitives (WP03)
+- [x] T011 Add transaction-local mutation tracking (WP03)
+- [x] T012 Implement begin, commit, and rollback visibility (WP03)
+- [x] T013 Add multi-session transaction tests (WP03)
 
 Implementation notes: correctness before concurrency cleverness. Coarse write
 serialization is acceptable for MVP if visibility semantics are precise.
