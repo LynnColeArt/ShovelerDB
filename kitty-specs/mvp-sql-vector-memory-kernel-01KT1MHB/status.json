@@ -1,16 +1,16 @@
 {
-  "event_count": 48,
-  "last_event_id": "01KT20B66V9YY3BKDF1GS5S94S",
-  "materialized_at": "2026-06-01T16:30:19.867559+00:00",
-  "mission_number": "",
+  "event_count": 56,
+  "last_event_id": "01KT2134DKGT2HSPKVG4168K6E",
+  "materialized_at": "2026-06-01T16:43:24.467837+00:00",
+  "mission_number": "1",
   "mission_slug": "mvp-sql-vector-memory-kernel-01KT1MHB",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 8,
+    "approved": 0,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 0,
+    "done": 8,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
@@ -18,60 +18,60 @@
   },
   "work_packages": {
     "WP01": {
-      "actor": "user",
-      "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KT1RG5XJNTRV70Q2TZPZG5KT",
-      "last_transition_at": "2026-06-01T14:13:14.802780+00:00"
+      "actor": "codex:gpt-5:reviewer-renata:reviewer",
+      "force_count": 2,
+      "lane": "done",
+      "last_event_id": "01KT212Y18BN9W0Z8XBPFMYJVQ",
+      "last_transition_at": "2026-06-01T16:43:17.928646+00:00"
     },
     "WP02": {
-      "actor": "user",
-      "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KT1S1DE2NSSKWVS0Y4HV9TKX",
-      "last_transition_at": "2026-06-01T14:22:39.554608+00:00"
+      "actor": "codex:gpt-5:reviewer-renata:reviewer",
+      "force_count": 2,
+      "lane": "done",
+      "last_event_id": "01KT212YYPAQCQKHW0G2BPMSM4",
+      "last_transition_at": "2026-06-01T16:43:18.870289+00:00"
     },
     "WP03": {
-      "actor": "user",
-      "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KT1SGFBRJQAFKZY94CX4C6FE",
-      "last_transition_at": "2026-06-01T14:30:53.048133+00:00"
+      "actor": "codex:gpt-5:reviewer-renata:reviewer",
+      "force_count": 2,
+      "lane": "done",
+      "last_event_id": "01KT212ZVMX94ZN3M760QMRAQQ",
+      "last_transition_at": "2026-06-01T16:43:19.796271+00:00"
     },
     "WP04": {
-      "actor": "user",
-      "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KT1TA8S8R238NRPA7RS29ZDM",
-      "last_transition_at": "2026-06-01T14:44:58.280742+00:00"
+      "actor": "codex:gpt-5:reviewer-renata:reviewer",
+      "force_count": 2,
+      "lane": "done",
+      "last_event_id": "01KT2130RJW8VDX16ACT0T2QNW",
+      "last_transition_at": "2026-06-01T16:43:20.722833+00:00"
     },
     "WP05": {
-      "actor": "user",
-      "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KT1TFWZ2D4XZ7B1AP3KNTB1T",
-      "last_transition_at": "2026-06-01T14:48:02.786105+00:00"
+      "actor": "codex:gpt-5:reviewer-renata:reviewer",
+      "force_count": 2,
+      "lane": "done",
+      "last_event_id": "01KT2131P1X5HWACAF65S5JJM8",
+      "last_transition_at": "2026-06-01T16:43:21.665164+00:00"
     },
     "WP06": {
-      "actor": "user",
-      "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KT1XXWX8PS28YYJ8ESK04F0B",
-      "last_transition_at": "2026-06-01T15:48:07.208522+00:00"
+      "actor": "codex:gpt-5:reviewer-renata:reviewer",
+      "force_count": 2,
+      "lane": "done",
+      "last_event_id": "01KT2132M1FECJKEP9NXFSAWJ8",
+      "last_transition_at": "2026-06-01T16:43:22.625850+00:00"
     },
     "WP07": {
-      "actor": "user",
-      "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KT1YSBQ2A9NFPXCAQ7DNTE1X",
-      "last_transition_at": "2026-06-01T16:03:07.106572+00:00"
+      "actor": "codex:gpt-5:reviewer-renata:reviewer",
+      "force_count": 2,
+      "lane": "done",
+      "last_event_id": "01KT2133H1740GV7E686220Q3Q",
+      "last_transition_at": "2026-06-01T16:43:23.553755+00:00"
     },
     "WP08": {
       "actor": "codex:gpt-5:reviewer-renata:reviewer",
-      "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KT20B66V9YY3BKDF1GS5S94S",
-      "last_transition_at": "2026-06-01T16:30:19.867559+00:00"
+      "force_count": 2,
+      "lane": "done",
+      "last_event_id": "01KT2134DKGT2HSPKVG4168K6E",
+      "last_transition_at": "2026-06-01T16:43:24.467837+00:00"
     }
   }
 }
