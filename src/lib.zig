@@ -7,6 +7,7 @@ pub const sql = struct {
 
 pub const mariadb = struct {
     pub const test_analyzer = @import("mariadb/test_analyzer.zig");
+    pub const test_classifier = @import("mariadb/test_classifier.zig");
 };
 
 pub const Project = struct {
@@ -43,4 +44,5 @@ test {
     std.testing.refAllDecls(sql.tokenizer);
     std.testing.refAllDecls(sql.policy);
     std.testing.refAllDecls(mariadb.test_analyzer);
+    std.testing.refAllDecls(mariadb.test_classifier);
 }

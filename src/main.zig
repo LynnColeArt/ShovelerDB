@@ -17,6 +17,7 @@ pub fn main(init: std.process.Init) !void {
         });
         try stdout.print("usage: shoveler check-sql <sql>\n", .{});
         try stdout.print("       shoveler analyze-test <path>\n", .{});
+        try stdout.print("       shoveler classify-test <path>\n", .{});
         try stdout.flush();
         return;
     }
@@ -71,6 +72,42 @@ pub fn main(init: std.process.Init) !void {
         if (analysis.unterminated_statement) {
             try stdout.print("  warning: unterminated statement\n", .{});
         }
+        if (analysis.first_violation) |found| {
+            try stdout.print("  first rejection: {s} at line {d}, byte {d}, near `{s}`\n", .{
+                found.feature.label(),
+                found.line,
+                found.offset,
+                found.tokenText(),
+            });
+        }
+        try stdout.flush();
+        return;
+    }
+
+    if (std.mem.eql(u8, args[1], "classify-test")) {
+        if (args.len < 3) {
+            try stdout.print("usage: shoveler classify-test <path>\n", .{});
+            try stdout.flush();
+            std.process.exit(64);
+        }
+
+        const path = args[2];
+        const contents = try std.Io.Dir.cwd().readFileAlloc(
+            io,
+            path,
+            arena,
+            .limited(100 * 1024 * 1024),
+        );
+        const analysis = try shovelerdb.mariadb.test_analyzer.analyze(arena, contents);
+        const classification = shovelerdb.mariadb.test_classifier.classify(analysis);
+
+        try stdout.print("{s}: {s}\n", .{ path, classification.bucket.label() });
+        try stdout.print("  reason: {s}\n", .{classification.reason});
+        try stdout.print("  statements: {d} accepted, {d} rejected, {d} total\n", .{
+            analysis.accepted_statements,
+            analysis.rejected_statements,
+            analysis.statements,
+        });
         if (analysis.first_violation) |found| {
             try stdout.print("  first rejection: {s} at line {d}, byte {d}, near `{s}`\n", .{
                 found.feature.label(),

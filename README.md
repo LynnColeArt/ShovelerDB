@@ -40,6 +40,7 @@ zig build test
 zig build run
 zig build run -- check-sql "CREATE TABLE memories (id INTEGER PRIMARY KEY, embedding VECTOR(4));"
 zig build run -- analyze-test references/mariadb/mysql-test/main/vector.test
+zig build run -- classify-test references/mariadb/mysql-test/main/sp-fib.test
 ```
 
 The `check-sql` command currently performs a lightweight dialect-policy pass. It
@@ -51,3 +52,10 @@ The `analyze-test` command performs a first-pass analysis of imported MariaDB
 `.test` files. It counts candidate SQL statements, MTR directives, harness
 commands, expected errors, delimiter changes, and the first ShovelerDB policy
 rejection.
+
+The `classify-test` command turns that analysis into an initial bucket:
+
+- `sacred-candidate`: plain policy-clean SQL.
+- `adaptation-candidate`: policy-clean SQL wrapped in MariaDB test harness behavior.
+- `rejected-by-policy`: contains SQL outside ShovelerDB's intended surface.
+- `deferred-candidate`: no candidate SQL found by the current analyzer.

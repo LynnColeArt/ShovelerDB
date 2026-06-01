@@ -40,6 +40,19 @@ Foreign key references are intentionally excluded from the initial copied set.
 - `deferred`: desirable, but outside the current milestone.
 - `rejected`: intentionally unsupported by ShovelerDB.
 
+The current CLI uses conservative working buckets while the corpus is being
+surveyed:
+
+- `sacred-candidate`: plain policy-clean SQL with no MariaDB harness features.
+- `adaptation-candidate`: policy-clean SQL wrapped in directives, delimiter
+  changes, expected errors, or other MariaDB test-runner behavior.
+- `rejected-by-policy`: contains SQL that ShovelerDB intentionally rejects.
+- `deferred-candidate`: no candidate SQL statements detected yet.
+
+These buckets are triage labels, not final doctrine. A human review can promote
+an adaptation candidate into a sacred test once it has a native ShovelerDB
+version.
+
 ## Import Rules
 
 1. Preserve original references under `references/mariadb/`.
@@ -47,4 +60,3 @@ Foreign key references are intentionally excluded from the initial copied set.
 3. Port behavior into native Zig tests under `tests/`.
 4. Record intentional incompatibilities in docs or a future manifest.
 5. Prefer behavior-level compatibility over source-level compatibility.
-
