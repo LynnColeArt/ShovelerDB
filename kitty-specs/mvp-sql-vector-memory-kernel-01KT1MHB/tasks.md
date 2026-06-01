@@ -147,10 +147,10 @@ Implementation notes: exact scan only. ANN indexes are intentionally deferred.
 **Independent test**: committed state can be written, reopened, queried, and invalid files are rejected.
 **Estimated prompt size**: about 230 lines
 
-- [ ] T022 Define durable file format and version checks (WP06)
-- [ ] T023 Implement atomic snapshot write and reopen (WP06)
-- [ ] T024 Add invalid/truncated file recovery tests (WP06)
-- [ ] T025 Add embedded database open/close API surface (WP06)
+- [x] T022 Define durable file format and version checks (WP06)
+- [x] T023 Implement atomic snapshot write and reopen (WP06)
+- [x] T024 Add invalid/truncated file recovery tests (WP06)
+- [x] T025 Add embedded database open/close API surface (WP06)
 
 Implementation notes: use the smallest recoverable format that satisfies the
 spec. Version and validate the file format immediately.
