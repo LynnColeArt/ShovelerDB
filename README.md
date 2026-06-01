@@ -41,6 +41,7 @@ zig build run
 zig build run -- check-sql "CREATE TABLE memories (id INTEGER PRIMARY KEY, embedding VECTOR(4));"
 zig build run -- analyze-test references/mariadb/mysql-test/main/vector.test
 zig build run -- classify-test references/mariadb/mysql-test/main/sp-fib.test
+zig build run -- classify-test $(find references/mariadb -name '*.test' | sort)
 ```
 
 The `check-sql` command currently performs a lightweight dialect-policy pass. It
@@ -59,3 +60,6 @@ The `classify-test` command turns that analysis into an initial bucket:
 - `adaptation-candidate`: policy-clean SQL wrapped in MariaDB test harness behavior.
 - `rejected-by-policy`: contains SQL outside ShovelerDB's intended surface.
 - `deferred-candidate`: no candidate SQL found by the current analyzer.
+
+The first full-corpus classification snapshot is recorded in
+[docs/reference-corpus-snapshot.md](docs/reference-corpus-snapshot.md).
