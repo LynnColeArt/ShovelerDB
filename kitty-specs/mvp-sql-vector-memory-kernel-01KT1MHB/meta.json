@@ -9,5 +9,7 @@
   "purpose_context": "This mission advances mvp sql vector memory kernel on main so stakeholders can track the work from mission creation onward.",
   "purpose_tldr": "mvp sql vector memory kernel",
   "slug": "mvp-sql-vector-memory-kernel-01KT1MHB",
-  "target_branch": "main"
+  "target_branch": "main",
+  "vcs": "git",
+  "vcs_locked_at": "2026-06-01T14:03:24.910094+00:00"
 }

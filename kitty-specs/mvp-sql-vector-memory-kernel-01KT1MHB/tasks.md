@@ -61,11 +61,11 @@ flat `tasks/` directory.
 **Independent test**: parser/policy unit tests pass for accepted MVP syntax and rejected non-goals.
 **Estimated prompt size**: about 230 lines
 
-- [ ] T001 Add MVP SQL AST types (WP01)
-- [ ] T002 Implement parser shell and statement dispatch (WP01)
-- [ ] T003 Parse DDL, transaction, and mutation statements (WP01)
-- [ ] T004 Parse query/view/procedure/vector expression syntax (WP01)
-- [ ] T005 Preserve policy-first rejection tests (WP01)
+- [x] T001 Add MVP SQL AST types (WP01)
+- [x] T002 Implement parser shell and statement dispatch (WP01)
+- [x] T003 Parse DDL, transaction, and mutation statements (WP01)
+- [x] T004 Parse query/view/procedure/vector expression syntax (WP01)
+- [x] T005 Preserve policy-first rejection tests (WP01)
 
 Implementation notes: start from the existing tokenizer and policy modules.
 Do not widen SQL acceptance before parser tests lock the new behavior.

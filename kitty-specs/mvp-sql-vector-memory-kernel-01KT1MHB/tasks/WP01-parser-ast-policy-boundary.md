@@ -13,13 +13,17 @@ tracker_refs: []
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-mvp-sql-vector-memory-kernel-01KT1MHB
+base_commit: 457da4546f501f29fd9cc756ca6054633544450f
+created_at: '2026-06-01T14:03:25.004312+00:00'
 subtasks:
 - T001
 - T002
 - T003
 - T004
 - T005
-agent: codex
+agent: "codex"
+shell_pid: '1166952'
 history:
 - timestamp: '2026-06-01T13:10:41Z'
   agent: codex
@@ -187,3 +191,7 @@ surfaces.
 
 Reviewers should focus on grammar boundaries, allocation/deinit behavior, and
 whether any non-goal can reach parser/executor as if it were supported.
+
+## Activity Log
+
+- 2026-06-01T14:10:50Z – codex – shell_pid=1166952 – WP01 implementation committed in lane-a at 62ee206; validation passed: zig test src/sql/ast.zig, zig test src/sql/parser.zig, zig test src/sql/policy.zig, zig build test, git diff --check.
