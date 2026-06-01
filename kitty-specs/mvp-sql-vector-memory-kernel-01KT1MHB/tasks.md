@@ -114,11 +114,11 @@ serialization is acceptable for MVP if visibility semantics are precise.
 **Independent test**: executor tests cover DDL/DML/query/view/procedure happy paths and typed errors.
 **Estimated prompt size**: about 280 lines
 
-- [ ] T014 Implement SELECT scan/projection/filter/order/limit (WP04)
-- [ ] T015 Implement INSERT, UPDATE, and DELETE execution (WP04)
-- [ ] T016 Implement simple view registration and execution (WP04)
-- [ ] T017 Implement constrained procedure registration and CALL (WP04)
-- [ ] T018 Add executor diagnostics and integration tests (WP04)
+- [x] T014 Implement SELECT scan/projection/filter/order/limit (WP04)
+- [x] T015 Implement INSERT, UPDATE, and DELETE execution (WP04)
+- [x] T016 Implement simple view registration and execution (WP04)
+- [x] T017 Implement constrained procedure registration and CALL (WP04)
+- [x] T018 Add executor diagnostics and integration tests (WP04)
 
 Implementation notes: keep procedures constrained. Reject unsupported stored
 program syntax clearly instead of building a full MariaDB stored-program VM.
