@@ -17,12 +17,16 @@ tracker_refs: []
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-mvp-sql-vector-memory-kernel-01KT1MHB
+base_commit: bbadee5f6d8eb0524dccb1601f569ea90aed7532
+created_at: '2026-06-01T15:53:53.195203+00:00'
 subtasks:
 - T026
 - T027
 - T028
 - T029
-agent: codex
+agent: "codex"
+shell_pid: "2539739"
 history:
 - timestamp: '2026-06-01T13:10:41Z'
   agent: codex
@@ -156,3 +160,7 @@ adjusted.
 
 Review fixture provenance and CLI compatibility. Verify the classifier baseline
 is still meaningful.
+
+## Activity Log
+
+- 2026-06-01T16:01:36Z – codex – shell_pid=2539739 – Ready for review: lane-g ef8075c; validation passed: zig build test; check-sql smoke; parse smoke; execute smoke; full corpus classify-test summary; benchmark --rows 10000 --vectors 1000 --dimensions 128; git diff --check.
