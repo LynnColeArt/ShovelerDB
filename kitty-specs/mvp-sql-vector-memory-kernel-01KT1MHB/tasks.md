@@ -164,10 +164,10 @@ spec. Version and validate the file format immediately.
 **Independent test**: CLI smoke commands and benchmark command run locally.
 **Estimated prompt size**: about 260 lines
 
-- [ ] T026 Add CLI parse/execute/benchmark command surfaces (WP07)
-- [ ] T027 Promote MariaDB-derived native fixtures (WP07)
-- [ ] T028 Update reference-test docs and classification workflow (WP07)
-- [ ] T029 Add scalar/vector benchmark reporting (WP07)
+- [x] T026 Add CLI parse/execute/benchmark command surfaces (WP07)
+- [x] T027 Promote MariaDB-derived native fixtures (WP07)
+- [x] T028 Update reference-test docs and classification workflow (WP07)
+- [x] T029 Add scalar/vector benchmark reporting (WP07)
 
 Implementation notes: keep `references/mariadb/` immutable. Put native adapted
 fixtures under `tests/fixtures/mariadb-adapted/`.
