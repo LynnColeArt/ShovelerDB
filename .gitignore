@@ -35,6 +35,7 @@ zig-out/
 .kittify/charter/references.yaml
 .kittify/dossiers/
 .kittify/events/
+.kittify/encoding-provenance/
 .kittify/merge-state.json
 .kittify/missions/__pycache__/
 .kittify/runtime/
