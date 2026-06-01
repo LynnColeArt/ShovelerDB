@@ -108,6 +108,7 @@ const Parser = struct {
 
         if (self.matchKeyword("INSERT")) return .{ .insert = try self.parseInsert() };
         if (self.matchKeyword("SELECT")) return .{ .select = try self.parseSelectAfterSelect() };
+        if (self.matchKeyword("WITH")) return .{ .select = try self.parseSelectAfterWith() };
         if (self.matchKeyword("UPDATE")) return .{ .update = try self.parseUpdate() };
         if (self.matchKeyword("DELETE")) return .{ .delete = try self.parseDelete() };
         if (self.matchKeyword("BEGIN")) return .begin;
@@ -269,7 +270,49 @@ const Parser = struct {
         };
     }
 
+    fn parseSelectAfterWith(self: *Parser) ParseError!ast.SelectStatement {
+        var ctes: std.ArrayList(ast.CommonTableExpression) = .empty;
+        errdefer {
+            for (ctes.items) |cte| cte.deinit(self.allocator);
+            ctes.deinit(self.allocator);
+        }
+
+        while (true) {
+            var name: ?[]const u8 = try self.expectIdentifierOwned("CTE name");
+            errdefer if (name) |owned| self.allocator.free(owned);
+            try self.expectKeyword("AS");
+            try self.expectSymbol("(");
+            try self.expectKeyword("SELECT");
+
+            const query = try self.allocator.create(ast.SelectStatement);
+            errdefer self.allocator.destroy(query);
+            query.* = try self.parseSelectAfterSelect();
+            errdefer query.deinit(self.allocator);
+
+            try self.expectSymbol(")");
+            try ctes.append(self.allocator, .{
+                .name = name.?,
+                .query = query,
+            });
+            name = null;
+
+            if (!self.matchSymbol(",")) break;
+        }
+
+        try self.expectKeyword("SELECT");
+        var statement = try self.parseSelectAfterSelect();
+        errdefer statement.deinit(self.allocator);
+        statement.ctes = try ctes.toOwnedSlice(self.allocator);
+        return statement;
+    }
+
     fn parseSelectAfterSelect(self: *Parser) ParseError!ast.SelectStatement {
+        var projection_items: std.ArrayList(ast.Projection) = .empty;
+        errdefer {
+            for (projection_items.items) |projection| projection.deinit(self.allocator);
+            projection_items.deinit(self.allocator);
+        }
+
         var projections: std.ArrayList(ast.Expression) = .empty;
         errdefer {
             for (projections.items) |projection| projection.deinit(self.allocator);
@@ -277,15 +320,27 @@ const Parser = struct {
         }
 
         while (!self.isAtClauseBoundary()) {
-            try projections.append(self.allocator, try self.parseExpression());
+            var projection: ?ast.Projection = try self.parseProjection();
+            errdefer if (projection) |owned| owned.deinit(self.allocator);
+            try projections.append(self.allocator, try ast.cloneExpression(self.allocator, projection.?.expression));
+            try projection_items.append(self.allocator, projection.?);
+            projection = null;
             if (self.matchSymbol(",")) continue;
             break;
         }
 
         var from: ?[]const u8 = null;
         errdefer if (from) |table_name| self.allocator.free(table_name);
+        var source: ?*ast.RowSource = null;
+        errdefer if (source) |owned_source| {
+            owned_source.deinit(self.allocator);
+            self.allocator.destroy(owned_source);
+        };
         if (self.matchKeyword("FROM")) {
-            from = try self.expectIdentifierOwned("table name");
+            source = try self.parseRowSource();
+            if (source.?.* == .base_table) {
+                from = try self.allocator.dupe(u8, source.?.base_table.name);
+            }
         }
 
         var where_clause: ?ast.Expression = null;
@@ -320,12 +375,187 @@ const Parser = struct {
         }
 
         return .{
+            .projection_items = try projection_items.toOwnedSlice(self.allocator),
             .projections = try projections.toOwnedSlice(self.allocator),
             .from = from,
+            .source = source,
             .where_clause = where_clause,
             .order_by = try order_by.toOwnedSlice(self.allocator),
             .limit = limit,
         };
+    }
+
+    fn parseProjection(self: *Parser) ParseError!ast.Projection {
+        const expression = try self.parseExpression();
+        errdefer expression.deinit(self.allocator);
+
+        var alias: ?[]const u8 = null;
+        errdefer if (alias) |owned| self.allocator.free(owned);
+        if (self.matchKeyword("AS")) {
+            alias = try self.expectIdentifierOwned("projection alias");
+        } else if (self.canStartImplicitProjectionAlias(expression)) {
+            alias = try self.parseOptionalImplicitAlias();
+        }
+
+        const projection = ast.Projection{
+            .expression = expression,
+            .alias = alias,
+        };
+        alias = null;
+        return projection;
+    }
+
+    fn canStartImplicitProjectionAlias(self: *Parser, expression: ast.Expression) bool {
+        _ = self;
+        return switch (expression) {
+            .function_call, .literal, .binary => true,
+            .identifier => |identifier| std.mem.indexOfScalar(u8, identifier, '.') != null,
+            .star => false,
+        };
+    }
+
+    fn parseOptionalImplicitAlias(self: *Parser) ParseError!?[]const u8 {
+        const token = self.peek() orelse return null;
+        if (!isIdentifier(token) or isImplicitAliasBoundary(token)) return null;
+        _ = self.advance();
+        return try self.cloneIdentifierToken(token);
+    }
+
+    fn parseRowSource(self: *Parser) ParseError!*ast.RowSource {
+        var left: ?*ast.RowSource = try self.parseRowSourceAtom();
+        errdefer {
+            if (left) |owned| {
+                owned.deinit(self.allocator);
+                self.allocator.destroy(owned);
+            }
+        }
+
+        while (self.peekJoinType()) |join_type| {
+            try self.consumeJoinType(join_type);
+            var right: ?*ast.RowSource = try self.parseRowSourceAtom();
+            errdefer {
+                if (right) |owned| {
+                    owned.deinit(self.allocator);
+                    self.allocator.destroy(owned);
+                }
+            }
+
+            var on: ?ast.Expression = null;
+            errdefer if (on) |expr| expr.deinit(self.allocator);
+            if (self.matchKeyword("ON")) {
+                on = try self.parseExpression();
+            } else if (join_type != .cross) {
+                return self.failCurrent(.unexpected_token, "ON");
+            }
+
+            const joined = try self.allocator.create(ast.RowSource);
+            errdefer self.allocator.destroy(joined);
+            joined.* = .{
+                .join = .{
+                    .left = left.?,
+                    .join_type = join_type,
+                    .right = right.?,
+                    .on = on,
+                },
+            };
+            left = joined;
+            right = null;
+            on = null;
+        }
+
+        const result = left.?;
+        left = null;
+        return result;
+    }
+
+    fn parseRowSourceAtom(self: *Parser) ParseError!*ast.RowSource {
+        if (self.matchSymbol("(")) {
+            var query: ?*ast.SelectStatement = try self.allocator.create(ast.SelectStatement);
+            errdefer if (query) |owned| self.allocator.destroy(owned);
+            if (self.matchKeyword("SELECT")) {
+                query.?.* = try self.parseSelectAfterSelect();
+            } else if (self.matchKeyword("WITH")) {
+                query.?.* = try self.parseSelectAfterWith();
+            } else {
+                return self.failCurrent(.unexpected_token, "SELECT");
+            }
+            errdefer query.?.deinit(self.allocator);
+            try self.expectSymbol(")");
+
+            var alias: ?[]const u8 = try self.parseRequiredTableAlias("derived table alias");
+            errdefer if (alias) |owned| self.allocator.free(owned);
+
+            const source = try self.allocator.create(ast.RowSource);
+            errdefer self.allocator.destroy(source);
+            source.* = .{
+                .derived_table = .{
+                    .query = query.?,
+                    .alias = alias.?,
+                },
+            };
+            query = null;
+            alias = null;
+            return source;
+        }
+
+        const name = try self.expectIdentifierOwned("table name");
+        errdefer self.allocator.free(name);
+        var alias = try self.parseOptionalTableAlias();
+        errdefer if (alias) |owned| self.allocator.free(owned);
+
+        const source = try self.allocator.create(ast.RowSource);
+        errdefer self.allocator.destroy(source);
+        source.* = .{
+            .base_table = .{
+                .name = name,
+                .alias = alias,
+            },
+        };
+        alias = null;
+        return source;
+    }
+
+    fn parseRequiredTableAlias(self: *Parser, expected: []const u8) ParseError![]const u8 {
+        _ = self.matchKeyword("AS");
+        return self.expectIdentifierOwned(expected);
+    }
+
+    fn parseOptionalTableAlias(self: *Parser) ParseError!?[]const u8 {
+        if (self.matchKeyword("AS")) return try self.expectIdentifierOwned("table alias");
+        const token = self.peek() orelse return null;
+        if (!isIdentifier(token) or isTableAliasBoundary(token)) return null;
+        _ = self.advance();
+        return try self.cloneIdentifierToken(token);
+    }
+
+    fn peekJoinType(self: *Parser) ?ast.JoinType {
+        const token = self.peek() orelse return null;
+        if (token.eqlIgnoreCase("JOIN")) return .inner;
+        if (token.eqlIgnoreCase("INNER")) return .inner;
+        if (token.eqlIgnoreCase("CROSS")) return .cross;
+        if (token.eqlIgnoreCase("LEFT")) return .left;
+        return null;
+    }
+
+    fn consumeJoinType(self: *Parser, join_type: ast.JoinType) ParseError!void {
+        switch (join_type) {
+            .inner => {
+                if (self.matchKeyword("INNER")) {
+                    try self.expectKeyword("JOIN");
+                } else {
+                    try self.expectKeyword("JOIN");
+                }
+            },
+            .cross => {
+                try self.expectKeyword("CROSS");
+                try self.expectKeyword("JOIN");
+            },
+            .left => {
+                try self.expectKeyword("LEFT");
+                _ = self.matchKeyword("OUTER");
+                try self.expectKeyword("JOIN");
+            },
+        }
     }
 
     fn parseCreateView(self: *Parser) ParseError!ast.CreateViewStatement {
@@ -524,6 +754,13 @@ const Parser = struct {
                     },
                 };
             }
+            if (self.matchSymbol(".")) {
+                const member_token = try self.expectIdentifierToken("qualified identifier member");
+                const member = normalizedIdentifier(member_token);
+                const qualified = try std.fmt.allocPrint(self.allocator, "{s}.{s}", .{ name, member });
+                self.allocator.free(name);
+                return .{ .identifier = qualified };
+            }
             return .{ .identifier = name };
         }
 
@@ -573,6 +810,7 @@ const Parser = struct {
         const token = self.peek() orelse return true;
         return token.eqlIgnoreCase("FROM") or token.eqlIgnoreCase("WHERE") or
             token.eqlIgnoreCase("ORDER") or token.eqlIgnoreCase("LIMIT") or
+            token.eqlIgnoreCase("GROUP") or token.eqlIgnoreCase("HAVING") or
             std.mem.eql(u8, token.lexeme, ";");
     }
 
@@ -692,6 +930,33 @@ fn isComparisonStart(token: ?tokenizer.Token) bool {
         std.mem.eql(u8, actual.lexeme, "!");
 }
 
+fn isImplicitAliasBoundary(token: tokenizer.Token) bool {
+    return token.eqlIgnoreCase("FROM") or
+        token.eqlIgnoreCase("WHERE") or
+        token.eqlIgnoreCase("ORDER") or
+        token.eqlIgnoreCase("GROUP") or
+        token.eqlIgnoreCase("HAVING") or
+        token.eqlIgnoreCase("LIMIT") or
+        token.eqlIgnoreCase("JOIN") or
+        token.eqlIgnoreCase("INNER") or
+        token.eqlIgnoreCase("CROSS") or
+        token.eqlIgnoreCase("LEFT") or
+        token.eqlIgnoreCase("ON");
+}
+
+fn isTableAliasBoundary(token: tokenizer.Token) bool {
+    return token.eqlIgnoreCase("WHERE") or
+        token.eqlIgnoreCase("ORDER") or
+        token.eqlIgnoreCase("GROUP") or
+        token.eqlIgnoreCase("HAVING") or
+        token.eqlIgnoreCase("LIMIT") or
+        token.eqlIgnoreCase("JOIN") or
+        token.eqlIgnoreCase("INNER") or
+        token.eqlIgnoreCase("CROSS") or
+        token.eqlIgnoreCase("LEFT") or
+        token.eqlIgnoreCase("ON");
+}
+
 test "parser dispatches transaction statements" {
     const allocator = std.testing.allocator;
     const result = try parse(allocator, "BEGIN;");
@@ -738,8 +1003,130 @@ test "parser parses insert update delete and select" {
     const select = try parse(allocator, "SELECT id, l2_distance(embedding, [0, 0, 0]) FROM memories WHERE id = 1 ORDER BY id DESC LIMIT 5;");
     defer select.deinit(allocator);
     try std.testing.expectEqual(@as(usize, 2), select.statement.select.projections.len);
+    try std.testing.expectEqual(@as(usize, 2), select.statement.select.projection_items.len);
     try std.testing.expectEqual(@as(usize, 1), select.statement.select.order_by.len);
     try std.testing.expectEqual(@as(usize, 5), select.statement.select.limit.?);
+}
+
+test "parser parses projection aliases table aliases and qualified identifiers" {
+    const allocator = std.testing.allocator;
+
+    const result = try parse(
+        allocator,
+        "SELECT m.id, m.body body_text, l2_distance(m.embedding, [1, 0]) AS distance FROM memories AS m WHERE m.id = 1 ORDER BY distance ASC LIMIT 5;",
+    );
+    defer result.deinit(allocator);
+
+    const statement = result.statement.select;
+    try std.testing.expectEqual(@as(usize, 3), statement.projection_items.len);
+    try std.testing.expectEqualStrings("m.id", statement.projection_items[0].expression.identifier);
+    try std.testing.expect(statement.projection_items[0].alias == null);
+    try std.testing.expectEqualStrings("body_text", statement.projection_items[1].alias.?);
+    try std.testing.expectEqualStrings("distance", statement.projection_items[2].alias.?);
+
+    const parts = ast.identifierParts(statement.projection_items[0].expression.identifier);
+    try std.testing.expectEqualStrings("m", parts.qualifier.?);
+    try std.testing.expectEqualStrings("id", parts.name);
+
+    const source = statement.source.?.base_table;
+    try std.testing.expectEqualStrings("memories", source.name);
+    try std.testing.expectEqualStrings("m", source.alias.?);
+    try std.testing.expectEqualStrings("memories", statement.from.?);
+}
+
+test "parser rejects ambiguous implicit projection aliases" {
+    const allocator = std.testing.allocator;
+
+    const result = try parse(allocator, "SELECT id body FROM memories;");
+
+    try std.testing.expectEqual(DiagnosticCode.unexpected_token, result.diagnostic.code);
+    try std.testing.expectEqualStrings("body", result.diagnostic.token);
+}
+
+test "parser parses joins in CTE query sources" {
+    const allocator = std.testing.allocator;
+
+    const result = try parse(allocator,
+        \\WITH ranked AS (
+        \\  SELECT m.id, m.body, l2_distance(m.embedding, [1, 0]) AS distance
+        \\  FROM memories AS m
+        \\  JOIN memory_tags AS t ON t.memory_id = m.id
+        \\  WHERE t.name = 'project'
+        \\)
+        \\SELECT id, body
+        \\FROM ranked
+        \\WHERE distance < 1.0
+        \\ORDER BY distance
+        \\LIMIT 10;
+    );
+    defer result.deinit(allocator);
+
+    const statement = result.statement.select;
+    try std.testing.expectEqual(@as(usize, 1), statement.ctes.len);
+    try std.testing.expectEqualStrings("ranked", statement.ctes[0].name);
+    try std.testing.expectEqualStrings("ranked", statement.source.?.base_table.name);
+
+    const cte_query = statement.ctes[0].query.*;
+    try std.testing.expectEqual(@as(usize, 3), cte_query.projection_items.len);
+    try std.testing.expectEqualStrings("distance", cte_query.projection_items[2].alias.?);
+
+    const join = cte_query.source.?.join;
+    try std.testing.expectEqual(ast.JoinType.inner, join.join_type);
+    try std.testing.expectEqualStrings("memories", join.left.base_table.name);
+    try std.testing.expectEqualStrings("m", join.left.base_table.alias.?);
+    try std.testing.expectEqualStrings("memory_tags", join.right.base_table.name);
+    try std.testing.expectEqualStrings("t", join.right.base_table.alias.?);
+    try std.testing.expect(join.on != null);
+    try std.testing.expectEqual(ast.BinaryOperator.equal, join.on.?.binary.operator);
+}
+
+test "parser parses derived left joins and cross joins" {
+    const allocator = std.testing.allocator;
+
+    const left_join = try parse(
+        allocator,
+        "SELECT d.id FROM (SELECT id FROM memories) AS d LEFT JOIN tags t ON t.id = d.id;",
+    );
+    defer left_join.deinit(allocator);
+
+    const joined = left_join.statement.select.source.?.join;
+    try std.testing.expectEqual(ast.JoinType.left, joined.join_type);
+    try std.testing.expectEqualStrings("d", joined.left.derived_table.alias);
+    try std.testing.expectEqualStrings("tags", joined.right.base_table.name);
+    try std.testing.expectEqualStrings("t", joined.right.base_table.alias.?);
+    try std.testing.expect(joined.on != null);
+    try std.testing.expect(left_join.statement.select.from == null);
+
+    const cross_join = try parse(allocator, "SELECT * FROM memories m CROSS JOIN tags t;");
+    defer cross_join.deinit(allocator);
+
+    const cross = cross_join.statement.select.source.?.join;
+    try std.testing.expectEqual(ast.JoinType.cross, cross.join_type);
+    try std.testing.expect(cross.on == null);
+    try std.testing.expectEqualStrings("memories", cross.left.base_table.name);
+    try std.testing.expectEqualStrings("tags", cross.right.base_table.name);
+}
+
+test "parser preserves policy first rejections for non-goal surfaces" {
+    const allocator = std.testing.allocator;
+
+    const cases = [_]struct {
+        sql: []const u8,
+        feature: policy.UnsupportedFeature,
+    }{
+        .{ .sql = "CREATE TABLE child (parent_id INTEGER REFERENCES parent(id));", .feature = .foreign_key },
+        .{ .sql = "CREATE TEMP TABLE stage (id INTEGER);", .feature = .temporary_table },
+        .{ .sql = "CREATE TABLE t (id INTEGER) ENGINE=InnoDB;", .feature = .storage_engine_selection },
+        .{ .sql = "GRANT SELECT ON *.* TO 'agent'@'localhost';", .feature = .user_auth },
+        .{ .sql = "INSTALL PLUGIN foo SONAME 'foo.so';", .feature = .plugin },
+        .{ .sql = "SHOW BINLOG EVENTS;", .feature = .replication },
+    };
+
+    for (cases) |case| {
+        const result = try parse(allocator, case.sql);
+        try std.testing.expectEqual(DiagnosticCode.policy_violation, result.diagnostic.code);
+        try std.testing.expectEqual(case.feature, result.diagnostic.policy_feature.?);
+    }
 }
 
 test "parser parses view procedure and call statements" {

@@ -63,6 +63,21 @@ pub const Expression = union(enum) {
     }
 };
 
+pub const IdentifierParts = struct {
+    qualifier: ?[]const u8 = null,
+    name: []const u8,
+};
+
+pub fn identifierParts(identifier: []const u8) IdentifierParts {
+    if (std.mem.indexOfScalar(u8, identifier, '.')) |dot| {
+        return .{
+            .qualifier = identifier[0..dot],
+            .name = identifier[dot + 1 ..],
+        };
+    }
+    return .{ .name = identifier };
+}
+
 pub const FunctionCall = struct {
     name: []const u8,
     args: []Expression,
@@ -111,17 +126,105 @@ pub const OrderKey = struct {
     }
 };
 
+pub const Projection = struct {
+    expression: Expression,
+    alias: ?[]const u8 = null,
+
+    pub fn deinit(self: Projection, allocator: std.mem.Allocator) void {
+        self.expression.deinit(allocator);
+        if (self.alias) |alias| allocator.free(alias);
+    }
+};
+
+pub const TableSource = struct {
+    name: []const u8,
+    alias: ?[]const u8 = null,
+
+    pub fn deinit(self: TableSource, allocator: std.mem.Allocator) void {
+        allocator.free(self.name);
+        if (self.alias) |alias| allocator.free(alias);
+    }
+};
+
+pub const DerivedTableSource = struct {
+    query: *SelectStatement,
+    alias: []const u8,
+
+    pub fn deinit(self: DerivedTableSource, allocator: std.mem.Allocator) void {
+        self.query.deinit(allocator);
+        allocator.destroy(self.query);
+        allocator.free(self.alias);
+    }
+};
+
+pub const JoinType = enum {
+    inner,
+    cross,
+    left,
+};
+
+pub const JoinSource = struct {
+    left: *RowSource,
+    join_type: JoinType,
+    right: *RowSource,
+    on: ?Expression = null,
+
+    pub fn deinit(self: JoinSource, allocator: std.mem.Allocator) void {
+        self.left.deinit(allocator);
+        allocator.destroy(self.left);
+        self.right.deinit(allocator);
+        allocator.destroy(self.right);
+        if (self.on) |on| on.deinit(allocator);
+    }
+};
+
+pub const RowSource = union(enum) {
+    base_table: TableSource,
+    derived_table: DerivedTableSource,
+    join: JoinSource,
+
+    pub fn deinit(self: RowSource, allocator: std.mem.Allocator) void {
+        switch (self) {
+            .base_table => |source| source.deinit(allocator),
+            .derived_table => |source| source.deinit(allocator),
+            .join => |source| source.deinit(allocator),
+        }
+    }
+};
+
+pub const CommonTableExpression = struct {
+    name: []const u8,
+    query: *SelectStatement,
+
+    pub fn deinit(self: CommonTableExpression, allocator: std.mem.Allocator) void {
+        allocator.free(self.name);
+        self.query.deinit(allocator);
+        allocator.destroy(self.query);
+    }
+};
+
 pub const SelectStatement = struct {
+    ctes: []CommonTableExpression = &.{},
+    projection_items: []Projection = &.{},
     projections: []Expression,
     from: ?[]const u8 = null,
+    source: ?*RowSource = null,
     where_clause: ?Expression = null,
     order_by: []OrderKey = &.{},
     limit: ?usize = null,
 
     pub fn deinit(self: SelectStatement, allocator: std.mem.Allocator) void {
+        for (self.ctes) |cte| cte.deinit(allocator);
+        allocator.free(self.ctes);
+        for (self.projection_items) |projection| projection.deinit(allocator);
+        allocator.free(self.projection_items);
         for (self.projections) |projection| projection.deinit(allocator);
         allocator.free(self.projections);
         if (self.from) |from| allocator.free(from);
+        if (self.source) |source| {
+            source.deinit(allocator);
+            allocator.destroy(source);
+        }
         if (self.where_clause) |where_clause| where_clause.deinit(allocator);
         for (self.order_by) |order_key| order_key.deinit(allocator);
         allocator.free(self.order_by);
@@ -254,6 +357,63 @@ pub fn cloneIdentifier(allocator: std.mem.Allocator, identifier: []const u8) ![]
     return allocator.dupe(u8, identifier);
 }
 
+pub fn cloneExpression(allocator: std.mem.Allocator, source: Expression) !Expression {
+    return switch (source) {
+        .star => .star,
+        .identifier => |identifier| .{ .identifier = try allocator.dupe(u8, identifier) },
+        .literal => |literal| .{ .literal = try cloneLiteral(allocator, literal) },
+        .function_call => |call| blk: {
+            var args = try allocator.alloc(Expression, call.args.len);
+            errdefer allocator.free(args);
+
+            var count: usize = 0;
+            errdefer {
+                for (args[0..count]) |arg| arg.deinit(allocator);
+            }
+            for (call.args, 0..) |arg, index| {
+                args[index] = try cloneExpression(allocator, arg);
+                count += 1;
+            }
+
+            break :blk .{
+                .function_call = .{
+                    .name = try allocator.dupe(u8, call.name),
+                    .args = args,
+                },
+            };
+        },
+        .binary => |binary| blk: {
+            const left = try allocator.create(Expression);
+            errdefer allocator.destroy(left);
+            left.* = try cloneExpression(allocator, binary.left.*);
+            errdefer left.deinit(allocator);
+
+            const right = try allocator.create(Expression);
+            errdefer allocator.destroy(right);
+            right.* = try cloneExpression(allocator, binary.right.*);
+
+            break :blk .{
+                .binary = .{
+                    .left = left,
+                    .operator = binary.operator,
+                    .right = right,
+                },
+            };
+        },
+    };
+}
+
+fn cloneLiteral(allocator: std.mem.Allocator, source: Literal) !Literal {
+    return switch (source) {
+        .null => .null,
+        .integer => |v| .{ .integer = v },
+        .float => |v| .{ .float = v },
+        .boolean => |v| .{ .boolean = v },
+        .string => |v| .{ .string = try allocator.dupe(u8, v) },
+        .vector => |v| .{ .vector = try allocator.dupe(f64, v) },
+    };
+}
+
 test "statement deinit releases owned strings and vectors" {
     const allocator = std.testing.allocator;
     const columns = try allocator.alloc(ColumnDef, 2);
@@ -271,6 +431,45 @@ test "statement deinit releases owned strings and vectors" {
             .name = try cloneIdentifier(allocator, "memories"),
             .columns = columns,
         },
+    };
+    statement.deinit(allocator);
+}
+
+test "select statement deinit releases projection rowsources and ctes" {
+    const allocator = std.testing.allocator;
+
+    const cte_query = try allocator.create(SelectStatement);
+    cte_query.* = .{
+        .projections = try allocator.dupe(Expression, &.{.{ .literal = .{ .integer = 1 } }}),
+    };
+
+    const derived_query = try allocator.create(SelectStatement);
+    derived_query.* = .{
+        .projections = try allocator.dupe(Expression, &.{.{ .star = {} }}),
+        .from = try cloneIdentifier(allocator, "memories"),
+    };
+
+    const source = try allocator.create(RowSource);
+    source.* = .{
+        .derived_table = .{
+            .query = derived_query,
+            .alias = try cloneIdentifier(allocator, "m"),
+        },
+    };
+
+    const statement = SelectStatement{
+        .ctes = try allocator.dupe(CommonTableExpression, &.{.{
+            .name = try cloneIdentifier(allocator, "ranked"),
+            .query = cte_query,
+        }}),
+        .projection_items = try allocator.dupe(Projection, &.{.{
+            .expression = .{ .identifier = try cloneIdentifier(allocator, "m.id") },
+            .alias = try cloneIdentifier(allocator, "id"),
+        }}),
+        .projections = try allocator.dupe(Expression, &.{.{
+            .identifier = try cloneIdentifier(allocator, "m.id"),
+        }}),
+        .source = source,
     };
     statement.deinit(allocator);
 }
