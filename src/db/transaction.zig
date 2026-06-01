@@ -49,6 +49,7 @@ pub const Transaction = struct {
     allocator: std.mem.Allocator,
     store: *row_store.RowStore,
     state: TransactionState = .active,
+    next_id: row_store.RowId,
     inserts: std.ArrayList(row_store.Row) = .empty,
     updates: std.ArrayList(row_store.Row) = .empty,
     deletes: std.ArrayList(row_store.RowId) = .empty,
@@ -57,6 +58,7 @@ pub const Transaction = struct {
         return .{
             .allocator = allocator,
             .store = store,
+            .next_id = store.nextRowId(),
         };
     }
 
@@ -71,12 +73,12 @@ pub const Transaction = struct {
     pub fn insert(self: *Transaction, values: []const value.Value) !row_store.RowId {
         try self.ensureActive();
 
-        const id = self.store.nextRowId();
+        const id = self.next_id;
         var row = try row_store.Row.init(self.allocator, self.store.table, id, values);
         errdefer row.deinit(self.allocator);
 
         try self.inserts.append(self.allocator, row);
-        _ = self.store.allocateRowId();
+        self.next_id += 1;
         return id;
     }
 
@@ -323,6 +325,30 @@ test "transaction rollback discards inserts updates and deletes" {
     try std.testing.expectEqual(TransactionState.rolled_back, tx.state);
     try std.testing.expectEqual(@as(usize, 1), store.rows().len);
     try std.testing.expectEqualStrings("committed", store.get(committed_id).?.values[1].text);
+    try std.testing.expectEqual(@as(row_store.RowId, 2), store.nextRowId());
+}
+
+test "transaction failed local insert does not reserve row id" {
+    const allocator = std.testing.allocator;
+
+    var table = try makeMemoryTable(allocator);
+    defer table.deinit(allocator);
+
+    var store = row_store.RowStore.init(allocator, &table);
+    defer store.deinit();
+
+    var tx = Transaction.begin(allocator, &store);
+    defer tx.deinit();
+
+    try std.testing.expectError(error.ColumnCountMismatch, tx.insert(&.{.{ .integer = 1 }}));
+    try std.testing.expectEqual(@as(row_store.RowId, 1), store.nextRowId());
+    try std.testing.expectEqual(@as(row_store.RowId, 1), tx.next_id);
+
+    var values = try makeRowValues(allocator, 1, "valid", 1.0, 0.0);
+    defer deinitRowValues(allocator, &values);
+
+    const id = try tx.insert(&values);
+    try std.testing.expectEqual(@as(row_store.RowId, 1), id);
 }
 
 test "two sessions get read-your-writes and commit visibility" {

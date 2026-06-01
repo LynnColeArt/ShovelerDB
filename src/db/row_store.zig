@@ -290,6 +290,7 @@ test "row store validates column counts and typed vector dimensions before mutat
 
     try std.testing.expectError(error.ColumnCountMismatch, store.insert(&.{.{ .integer = 1 }}));
     try std.testing.expectEqual(@as(usize, 0), store.rows().len);
+    try std.testing.expectEqual(@as(RowId, 1), store.nextRowId());
 
     var body = try value.Value.initText(allocator, "bad");
     defer body.deinit(allocator);
@@ -301,6 +302,7 @@ test "row store validates column counts and typed vector dimensions before mutat
         store.insert(&.{ .{ .integer = 1 }, body, wrong_vector }),
     );
     try std.testing.expectEqual(@as(usize, 0), store.rows().len);
+    try std.testing.expectEqual(@as(RowId, 1), store.nextRowId());
 }
 
 test "row store clone owns independent row values" {
