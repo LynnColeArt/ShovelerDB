@@ -14,7 +14,7 @@ sacred-candidate: 2
 adaptation-candidate: 35
 rejected-by-policy: 60
 deferred-candidate: 0
-statements: 16028 accepted, 370 rejected, 16398 total
+statements: 16027 accepted, 371 rejected, 16398 total
 ```
 
 ## Sacred Candidates
@@ -85,3 +85,19 @@ InnoDB and transaction references often include `ENGINE=InnoDB` clauses because
 MariaDB is multi-engine; ShovelerDB can port the behavior while omitting the
 engine-selection syntax.
 
+## Promoted Native Fixtures
+
+WP07 adds a small native fixture set under
+`tests/fixtures/mariadb-adapted/`. These descriptors keep provenance while
+rewriting behavior into ShovelerDB's supported surface:
+
+```text
+tests/fixtures/mariadb-adapted/autoincrement-deferred.md
+tests/fixtures/mariadb-adapted/procedure-single-statement.md
+tests/fixtures/mariadb-adapted/vector-values.md
+tests/fixtures/mariadb-adapted/view-basic.md
+```
+
+The classifier output above is unchanged by these descriptors because they do
+not modify `references/mariadb/`; they are the bridge between reference evidence
+and native acceptance tests.
