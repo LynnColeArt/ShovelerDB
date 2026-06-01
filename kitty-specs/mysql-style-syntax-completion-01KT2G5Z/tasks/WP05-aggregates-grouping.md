@@ -25,6 +25,7 @@ owned_files:
 - tests/integration/aggregate_acceptance.zig
 role: implementer
 tags: []
+agent: "codex"
 ---
 
 # WP05 - Aggregates and Grouping
@@ -47,3 +48,7 @@ Add aggregate execution for practical reporting queries.
 - The grouped-query example from the spec passes.
 - Invalid aggregate/grouping mixes produce explicit diagnostics.
 - `zig build test` passes.
+
+## Activity Log
+
+- 2026-06-01T22:40:10Z – codex – shell_pid=1166952 – Done override: Implemented aggregate grouping on lane commit dc1ba0c, landed on main as 87d1c0e, and validated with zig build test, diff check, CLI GROUP BY/HAVING smoke, and benchmark grouped_scan smoke.
