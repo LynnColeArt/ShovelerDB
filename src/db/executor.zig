@@ -319,25 +319,27 @@ pub const Database = struct {
         try sortIndices(self.allocator, table, rows, indices.items, statement.order_by);
 
         const row_limit = if (statement.limit) |limit| @min(limit, indices.items.len) else indices.items.len;
-        var result = ResultSet{
-            .columns = try resultColumns(self.allocator, table, statement.projections),
-            .rows = try self.allocator.alloc(ResultRow, row_limit),
-        };
-        errdefer result.deinit(self.allocator);
+        const columns = try resultColumns(self.allocator, table, statement.projections);
+        errdefer deinitColumns(self.allocator, columns);
+        const result_rows = try self.allocator.alloc(ResultRow, row_limit);
+        errdefer self.allocator.free(result_rows);
 
         var built_rows: usize = 0;
         errdefer {
-            for (result.rows[0..built_rows]) |*row| row.deinit(self.allocator);
+            for (result_rows[0..built_rows]) |*row| row.deinit(self.allocator);
         }
 
         for (indices.items[0..row_limit], 0..) |row_index, out_index| {
-            result.rows[out_index] = .{
+            result_rows[out_index] = .{
                 .values = try projectRow(self.allocator, table, rows[row_index], statement.projections),
             };
             built_rows += 1;
         }
 
-        return result;
+        return .{
+            .columns = columns,
+            .rows = result_rows,
+        };
     }
 
     fn executeCall(self: *Database, session: *Session, call: ast.CallStatement) anyerror!ExecutionResult {
@@ -801,6 +803,11 @@ fn cloneValueSlice(allocator: std.mem.Allocator, values: []const value.Value) ![
 fn deinitValueSlice(allocator: std.mem.Allocator, values: []value.Value) void {
     deinitValues(allocator, values);
     allocator.free(values);
+}
+
+fn deinitColumns(allocator: std.mem.Allocator, columns: [][]u8) void {
+    for (columns) |column| allocator.free(column);
+    allocator.free(columns);
 }
 
 fn deinitValues(allocator: std.mem.Allocator, values: []value.Value) void {
