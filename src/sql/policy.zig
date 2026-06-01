@@ -43,6 +43,7 @@ const Keyword = enum {
     key,
     plugin,
     replication,
+    references,
     revoke,
     rollback,
     table,
@@ -93,6 +94,10 @@ pub fn firstViolation(sql: []const u8) ?PolicyViolation {
 
         if (keyword == .binlog or keyword == .replication) {
             return violation(.replication, token);
+        }
+
+        if (keyword == .references) {
+            return violation(.foreign_key, token);
         }
 
         if (prev) |p| {
@@ -164,6 +169,7 @@ fn keywordOf(token: tokenizer.Token) ?Keyword {
     if (token.eqlIgnoreCase("PLUGIN")) return .plugin;
     if (token.eqlIgnoreCase("PROCEDURE")) return .procedure;
     if (token.eqlIgnoreCase("REPLICATION")) return .replication;
+    if (token.eqlIgnoreCase("REFERENCES")) return .references;
     if (token.eqlIgnoreCase("REVOKE")) return .revoke;
     if (token.eqlIgnoreCase("ROLLBACK")) return .rollback;
     if (token.eqlIgnoreCase("TABLE")) return .table;
@@ -192,6 +198,14 @@ test "policy rejects foreign keys loudly" {
     ) orelse return error.ExpectedViolation;
 
     try std.testing.expectEqual(UnsupportedFeature.foreign_key, result.feature);
+
+    const references_result = firstViolation(
+        \\CREATE TABLE child (
+        \\  parent_id INTEGER REFERENCES parent(id)
+        \\);
+    ) orelse return error.ExpectedViolation;
+
+    try std.testing.expectEqual(UnsupportedFeature.foreign_key, references_result.feature);
 }
 
 test "policy rejects temporary tables loudly" {
@@ -231,4 +245,3 @@ test "policy rejects server-era administration" {
         (firstViolation("SHOW BINLOG EVENTS;") orelse return error.ExpectedViolation).feature,
     );
 }
-
