@@ -348,6 +348,25 @@ const Parser = struct {
             where_clause = try self.parseExpression();
         }
 
+        var group_by: std.ArrayList(ast.Expression) = .empty;
+        errdefer {
+            for (group_by.items) |group_key| group_key.deinit(self.allocator);
+            group_by.deinit(self.allocator);
+        }
+        if (self.matchKeyword("GROUP")) {
+            try self.expectKeyword("BY");
+            while (true) {
+                try group_by.append(self.allocator, try self.parseExpression());
+                if (!self.matchSymbol(",")) break;
+            }
+        }
+
+        var having: ?ast.Expression = null;
+        errdefer if (having) |expr| expr.deinit(self.allocator);
+        if (self.matchKeyword("HAVING")) {
+            having = try self.parseExpression();
+        }
+
         var order_by: std.ArrayList(ast.OrderKey) = .empty;
         errdefer {
             for (order_by.items) |order_key| order_key.deinit(self.allocator);
@@ -380,6 +399,8 @@ const Parser = struct {
             .from = from,
             .source = source,
             .where_clause = where_clause,
+            .group_by = try group_by.toOwnedSlice(self.allocator),
+            .having = having,
             .order_by = try order_by.toOwnedSlice(self.allocator),
             .limit = limit,
         };
@@ -1006,6 +1027,24 @@ test "parser parses insert update delete and select" {
     try std.testing.expectEqual(@as(usize, 2), select.statement.select.projection_items.len);
     try std.testing.expectEqual(@as(usize, 1), select.statement.select.order_by.len);
     try std.testing.expectEqual(@as(usize, 5), select.statement.select.limit.?);
+}
+
+test "parser parses group by and having clauses" {
+    const allocator = std.testing.allocator;
+
+    const result = try parse(
+        allocator,
+        "SELECT tag, COUNT(*) AS total, AVG(score) AS average_score FROM memory_scores GROUP BY tag HAVING total > 1 ORDER BY average_score DESC;",
+    );
+    defer result.deinit(allocator);
+
+    const statement = result.statement.select;
+    try std.testing.expectEqual(@as(usize, 1), statement.group_by.len);
+    try std.testing.expectEqualStrings("tag", statement.group_by[0].identifier);
+    try std.testing.expect(statement.having != null);
+    try std.testing.expectEqual(ast.BinaryOperator.greater_than, statement.having.?.binary.operator);
+    try std.testing.expectEqual(@as(usize, 1), statement.order_by.len);
+    try std.testing.expectEqual(ast.OrderDirection.desc, statement.order_by[0].direction);
 }
 
 test "parser parses projection aliases table aliases and qualified identifiers" {

@@ -85,6 +85,11 @@ pub fn run(
     result.deinit(allocator);
     const scan_elapsed = elapsedSince(io, scan_start);
 
+    const grouped_start = now(io);
+    result = try db.executeSql(&session, "SELECT score, COUNT(*) AS total FROM scalar_memory GROUP BY score HAVING total > 1 ORDER BY total DESC LIMIT 5;");
+    result.deinit(allocator);
+    const grouped_elapsed = elapsedSince(io, grouped_start);
+
     const rollback_start = now(io);
     result = try db.executeSql(&session, "BEGIN;");
     result.deinit(allocator);
@@ -115,6 +120,7 @@ pub fn run(
 
     try printMetric(writer, "insert_commit", options.rows, insert_elapsed);
     try printMetric(writer, "select_scan", options.rows, scan_elapsed);
+    try printMetric(writer, "grouped_scan", options.rows, grouped_elapsed);
     try printMetric(writer, "rollback_updates", rollback_ops, rollback_elapsed);
     try printMetric(writer, "exact_vector_scan", options.vectors, vector_elapsed);
     if (nearest.len > 0) {

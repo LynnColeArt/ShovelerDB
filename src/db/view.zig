@@ -155,6 +155,22 @@ pub fn cloneSelect(allocator: std.mem.Allocator, source: ast.SelectStatement) an
     errdefer if (where_clause) |expr| expr.deinit(allocator);
     if (source.where_clause) |expr| where_clause = try cloneExpression(allocator, expr);
 
+    var group_by = try allocator.alloc(ast.Expression, source.group_by.len);
+    errdefer allocator.free(group_by);
+
+    var group_count: usize = 0;
+    errdefer {
+        for (group_by[0..group_count]) |group_key| group_key.deinit(allocator);
+    }
+    for (source.group_by, 0..) |group_key, index| {
+        group_by[index] = try cloneExpression(allocator, group_key);
+        group_count += 1;
+    }
+
+    var having: ?ast.Expression = null;
+    errdefer if (having) |expr| expr.deinit(allocator);
+    if (source.having) |expr| having = try cloneExpression(allocator, expr);
+
     var order_by = try allocator.alloc(ast.OrderKey, source.order_by.len);
     errdefer allocator.free(order_by);
 
@@ -177,6 +193,8 @@ pub fn cloneSelect(allocator: std.mem.Allocator, source: ast.SelectStatement) an
         .from = from,
         .source = row_source,
         .where_clause = where_clause,
+        .group_by = group_by,
+        .having = having,
         .order_by = order_by,
         .limit = source.limit,
     };

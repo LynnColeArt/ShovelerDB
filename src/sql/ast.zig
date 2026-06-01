@@ -210,6 +210,8 @@ pub const SelectStatement = struct {
     from: ?[]const u8 = null,
     source: ?*RowSource = null,
     where_clause: ?Expression = null,
+    group_by: []Expression = &.{},
+    having: ?Expression = null,
     order_by: []OrderKey = &.{},
     limit: ?usize = null,
 
@@ -226,6 +228,9 @@ pub const SelectStatement = struct {
             allocator.destroy(source);
         }
         if (self.where_clause) |where_clause| where_clause.deinit(allocator);
+        for (self.group_by) |group_key| group_key.deinit(allocator);
+        allocator.free(self.group_by);
+        if (self.having) |having| having.deinit(allocator);
         for (self.order_by) |order_key| order_key.deinit(allocator);
         allocator.free(self.order_by);
     }
@@ -470,6 +475,9 @@ test "select statement deinit releases projection rowsources and ctes" {
             .identifier = try cloneIdentifier(allocator, "m.id"),
         }}),
         .source = source,
+        .group_by = try allocator.dupe(Expression, &.{.{
+            .identifier = try cloneIdentifier(allocator, "m.id"),
+        }}),
     };
     statement.deinit(allocator);
 }

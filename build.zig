@@ -35,6 +35,14 @@ pub fn build(b: *std.Build) void {
             .{ .name = "shovelerdb", .module = lib_module },
         },
     });
+    const aggregate_integration_module = b.createModule(.{
+        .root_source_file = b.path("tests/integration/aggregate_acceptance.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "shovelerdb", .module = lib_module },
+        },
+    });
 
     const exe = b.addExecutable(.{
         .name = "shoveler",
@@ -64,14 +72,19 @@ pub fn build(b: *std.Build) void {
     const query_source_integration_tests = b.addTest(.{
         .root_module = query_source_integration_module,
     });
+    const aggregate_integration_tests = b.addTest(.{
+        .root_module = aggregate_integration_module,
+    });
 
     const run_lib_tests = b.addRunArtifact(lib_tests);
     const run_exe_tests = b.addRunArtifact(exe_tests);
     const run_integration_tests = b.addRunArtifact(integration_tests);
     const run_query_source_integration_tests = b.addRunArtifact(query_source_integration_tests);
+    const run_aggregate_integration_tests = b.addRunArtifact(aggregate_integration_tests);
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_lib_tests.step);
     test_step.dependOn(&run_exe_tests.step);
     test_step.dependOn(&run_integration_tests.step);
     test_step.dependOn(&run_query_source_integration_tests.step);
+    test_step.dependOn(&run_aggregate_integration_tests.step);
 }

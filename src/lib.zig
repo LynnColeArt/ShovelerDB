@@ -10,6 +10,7 @@ pub const sql = struct {
 pub const db = struct {
     pub const value = @import("db/value.zig");
     pub const catalog = @import("db/catalog.zig");
+    pub const aggregate = @import("db/aggregate.zig");
     pub const row_store = @import("db/row_store.zig");
     pub const transaction = @import("db/transaction.zig");
     pub const query_source = @import("db/query_source.zig");
@@ -68,6 +69,7 @@ test {
     std.testing.refAllDecls(sql.policy);
     std.testing.refAllDecls(db.value);
     std.testing.refAllDecls(db.catalog);
+    std.testing.refAllDecls(db.aggregate);
     std.testing.refAllDecls(db.row_store);
     std.testing.refAllDecls(db.transaction);
     std.testing.refAllDecls(db.query_source);
