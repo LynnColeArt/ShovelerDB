@@ -1,12 +1,12 @@
 {
-  "event_count": 37,
-  "last_event_id": "01KT1XW2D57VK1DQ8YZR39AGBB",
-  "materialized_at": "2026-06-01T15:47:07.301450+00:00",
+  "event_count": 42,
+  "last_event_id": "01KT1YQA5YH8S6RYKPVRTQ5B4Q",
+  "materialized_at": "2026-06-01T16:01:59.998924+00:00",
   "mission_number": "",
   "mission_slug": "mvp-sql-vector-memory-kernel-01KT1MHB",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 5,
+    "approved": 6,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
@@ -14,7 +14,7 @@
     "for_review": 0,
     "in_progress": 0,
     "in_review": 1,
-    "planned": 2
+    "planned": 1
   },
   "work_packages": {
     "WP01": {
@@ -53,18 +53,18 @@
       "last_transition_at": "2026-06-01T14:48:02.786105+00:00"
     },
     "WP06": {
+      "actor": "user",
+      "force_count": 1,
+      "lane": "approved",
+      "last_event_id": "01KT1XXWX8PS28YYJ8ESK04F0B",
+      "last_transition_at": "2026-06-01T15:48:07.208522+00:00"
+    },
+    "WP07": {
       "actor": "codex:gpt-5:reviewer-renata:reviewer",
       "force_count": 1,
       "lane": "in_review",
-      "last_event_id": "01KT1XW2D57VK1DQ8YZR39AGBB",
-      "last_transition_at": "2026-06-01T15:47:07.301450+00:00"
-    },
-    "WP07": {
-      "actor": "finalize-tasks",
-      "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KT1N7PFWYHW8KF0QDZ0N089Q",
-      "last_transition_at": "2026-06-01T13:16:11.132944+00:00"
+      "last_event_id": "01KT1YQA5YH8S6RYKPVRTQ5B4Q",
+      "last_transition_at": "2026-06-01T16:01:59.998924+00:00"
     },
     "WP08": {
       "actor": "finalize-tasks",
