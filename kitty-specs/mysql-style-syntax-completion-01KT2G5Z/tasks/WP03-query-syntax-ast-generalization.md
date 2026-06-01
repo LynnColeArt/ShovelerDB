@@ -28,6 +28,7 @@ owned_files:
 - src/sql/policy.zig
 role: implementer
 tags: []
+agent: "codex"
 ---
 
 # WP03 - Query Syntax AST Generalization
@@ -56,3 +57,7 @@ guessing.
 - Policy rejections for foreign keys/temp tables/server features still fire
   before parser work.
 - `zig build test` passes.
+
+## Activity Log
+
+- 2026-06-01T22:08:28Z – codex – shell_pid=1166952 – Done override: Reviewed lane commit dd3abe66, landed on main as 902be1c, and validated with zig build test, diff check, and query parse smokes.
