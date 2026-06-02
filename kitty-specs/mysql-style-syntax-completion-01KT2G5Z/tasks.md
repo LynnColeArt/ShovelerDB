@@ -104,8 +104,8 @@ MariaDB fixture execution.
 **Requirement Refs**: FR-013, FR-018
 **Dependencies**: WP03
 
-- [ ] T015 Parse and store useful MySQL DDL modifiers.
-- [ ] T016 Implement ordinary index metadata and DDL diagnostics.
+- [x] T015 Parse and store useful MySQL DDL modifiers.
+- [x] T016 Implement ordinary index metadata and DDL diagnostics.
 
 ### WP07 - Stored Procedure Control Flow
 

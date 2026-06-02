@@ -52,3 +52,7 @@ server or storage-engine surfaces.
 - Ordinary indexes are catalog-visible metadata, even if not optimizer-active.
 - Explicit non-goals remain loudly rejected.
 - `zig build test` passes.
+
+## Activity Log
+
+- 2026-06-02T00:36:01Z – unknown – shell_pid=1166952 – Ready for review: mysql-style DDL metadata is wired through parser/catalog/executor/persistence. Validation: zig build test exit 0; zig fmt --check diff-scoped exit 0; CLI execute smoke exit 0.
