@@ -135,8 +135,8 @@ MariaDB fixture execution.
 **Requirement Refs**: FR-016, FR-019, FR-020
 **Dependencies**: WP01, WP02, WP03, WP04, WP05, WP06, WP07, WP08
 
-- [ ] T022 Run full acceptance, update benchmarks, and fix integration gaps.
-- [ ] T023 Keep Spec Kitty system notes current.
+- [x] T022 Run full acceptance, update benchmarks, and fix integration gaps.
+- [x] T023 Keep Spec Kitty system notes current.
 
 ## Acceptance Handoff
 
