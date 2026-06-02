@@ -25,6 +25,7 @@ owned_files:
 - tests/integration/ddl_acceptance.zig
 role: implementer
 tags: []
+agent: "codex:gpt-5:implementer-ivan:implementer"
 ---
 
 # WP06 - MySQL DDL Compatibility and Index Metadata

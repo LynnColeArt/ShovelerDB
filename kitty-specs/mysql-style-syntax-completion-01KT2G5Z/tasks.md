@@ -71,9 +71,9 @@ MariaDB fixture execution.
 **Requirement Refs**: FR-006, FR-007, FR-008, FR-010, FR-018
 **Dependencies**: WP02
 
-- [ ] T006 Add projection aliases and qualified identifiers to AST/parser.
-- [ ] T007 Add row-source AST for base sources, joins, derived tables, and CTEs.
-- [ ] T008 Add parser tests for MySQL-style query syntax.
+- [x] T006 Add projection aliases and qualified identifiers to AST/parser.
+- [x] T007 Add row-source AST for base sources, joins, derived tables, and CTEs.
+- [x] T008 Add parser tests for MySQL-style query syntax.
 
 ### WP04 - Row-Source Executor
 
@@ -82,10 +82,10 @@ MariaDB fixture execution.
 **Requirement Refs**: FR-007, FR-009, FR-010, FR-012, FR-016
 **Dependencies**: WP03
 
-- [ ] T009 Implement row environments and alias resolution.
-- [ ] T010 Execute inner/cross/left joins with ON predicates.
-- [ ] T011 Execute non-recursive CTEs and derived tables.
-- [ ] T012 Expand view execution over richer SELECT sources.
+- [x] T009 Implement row environments and alias resolution.
+- [x] T010 Execute inner/cross/left joins with ON predicates.
+- [x] T011 Execute non-recursive CTEs and derived tables.
+- [x] T012 Expand view execution over richer SELECT sources.
 
 ### WP05 - Aggregates and Grouping
 
@@ -94,8 +94,8 @@ MariaDB fixture execution.
 **Requirement Refs**: FR-011, FR-016, FR-019
 **Dependencies**: WP04
 
-- [ ] T013 Implement aggregate functions, GROUP BY, and HAVING.
-- [ ] T014 Add grouped-query diagnostics and tests.
+- [x] T013 Implement aggregate functions, GROUP BY, and HAVING.
+- [x] T014 Add grouped-query diagnostics and tests.
 
 ### WP06 - MySQL DDL Compatibility and Index Metadata
 
