@@ -29,6 +29,7 @@ owned_files:
 - docs/reference-corpus-syntax-refresh.md
 role: implementer
 tags: []
+agent: "codex:gpt-5:implementer-ivan:implementer"
 ---
 
 # WP08 - Adapted MariaDB Fixture Execution
@@ -50,3 +51,7 @@ Promote accepted reference fixtures into executable regression coverage.
 - Unsupported harness directives are reported, not skipped invisibly.
 - Corpus docs match the current classified and executable counts.
 - `zig build test` passes.
+
+## Activity Log
+
+- 2026-06-02T12:05:42Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1166952 – Ready for review: promoted query syntax, procedure control-flow, and grouping/aggregate adapted MariaDB descriptors; wired them into zig build test through MTR-lite; refreshed reference corpus docs and explicit deferrals. Validation: zig build test exit 0; zig fmt --check diff-scoped exit 0; git diff --check exit 0; run-adapted-test query/procedure/grouping fixtures exit 0. Lane commit 87e42ca.
