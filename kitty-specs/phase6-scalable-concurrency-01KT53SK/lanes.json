@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "mission_slug": "phase6-scalable-concurrency-01KT53SK",
+  "mission_id": "01KT53SKR9AA3N2ZVAZPZ0GWAN",
+  "mission_branch": "kitty/mission-phase6-scalable-concurrency-01KT53SK",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "build.zig",
+        "docs/concurrency.md",
+        "docs/project-plan.md",
+        "src/db/concurrency.zig",
+        "src/lib.zig",
+        "tests/integration/concurrency_contract_acceptance.zig"
+      ],
+      "predicted_surfaces": [],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "src/db/snapshot.zig",
+        "tests/integration/snapshot_generation_acceptance.zig"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "src/db/backpressure.zig",
+        "src/db/commit_queue.zig",
+        "tests/integration/commit_queue_acceptance.zig"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-b"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "src/db/checkpoint_worker.zig",
+        "src/vector/overlay.zig",
+        "tests/integration/checkpoint_vector_overlay_acceptance.zig"
+      ],
+      "predicted_surfaces": [],
+      "depends_on_lanes": [
+        "lane-c"
+      ],
+      "parallel_group": 3
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "docs/acceptance-phase6-scalable-concurrency.md",
+        "docs/spec-kitty-system-notes.md",
+        "src/cli/benchmark.zig",
+        "tests/integration/concurrency_stress_acceptance.zig"
+      ],
+      "predicted_surfaces": [],
+      "depends_on_lanes": [
+        "lane-c",
+        "lane-d"
+      ],
+      "parallel_group": 4
+    }
+  ],
+  "computed_at": "2026-06-02T21:33:10.677582+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}

@@ -2,13 +2,16 @@
 
 Current roadmap position: the MVP SQL/vector memory kernel mission completed on
 2026-06-01, and the MySQL-style syntax-completion mission completed on
-2026-06-02. ShovelerDB now has a Zig library/CLI, SQL policy and parser,
-in-memory row storage, transaction sessions, basic DDL/DML execution, joins,
-CTEs, derived tables, grouping/aggregates, constrained views and procedures,
-vector values/helpers, SQL vector ranking, snapshot persistence, adapted fixture
-descriptors, CLI smokes, and benchmark coverage. The active follow-up mission is
-`agent-concurrency-mvcc-01KT499P`, which starts the agent-shaped concurrency
-model with stable reader snapshots and ordered writer commits.
+2026-06-02. The first Phase 6 MVCC slice also completed on 2026-06-02.
+ShovelerDB now has a Zig library/CLI, SQL policy and parser, in-memory row
+storage, transaction sessions, basic DDL/DML execution, joins, CTEs, derived
+tables, grouping/aggregates, constrained views and procedures, vector
+values/helpers, SQL vector ranking, snapshot persistence, stable reader
+snapshots, ordered writer commits, adapted fixture descriptors, CLI smokes, and
+benchmark coverage. The active follow-up mission is
+`phase6-scalable-concurrency-01KT53SK`, which finishes the remaining Phase 6
+concurrency shape with cheap snapshots, backpressure, checkpoint coordination,
+vector overlay semantics, and stress coverage.
 
 ## Phase 0: Repository Foundation
 
@@ -128,8 +131,8 @@ Exit criteria:
 
 ## Phase 6: Concurrency Model
 
-Status: started; session-level snapshots and serialized commit sequencing are
-the first implementation slice.
+Status: started; the first MVCC correctness slice is complete, and the active
+follow-up mission covers the scalable operational pieces.
 
 Goal: make ShovelerDB useful as an agent memory kernel.
 
@@ -185,3 +188,31 @@ Exit criteria:
 
 - Every major feature lands with a benchmark.
 - Performance regressions are visible in CI.
+
+## Phase 9: Language Connectors and Embedding SDKs
+
+Status: planned.
+
+Goal: make ShovelerDB easy to embed from the agent stacks people actually use
+without turning the database into a server product.
+
+Tasks:
+
+- Define a stable C ABI for opening databases, running transactions, iterating
+  results, reporting typed errors, and releasing caller-owned resources.
+- Add connector packages for Go, Python, Java, PHP, TypeScript/Node, .NET, and
+  Rust.
+- Keep connector behavior pinned to shared acceptance fixtures instead of
+  dialect-specific hand tests.
+- Document memory ownership, transaction lifetime, vector value encoding, and
+  error mapping for each binding.
+- Add connector smoke tests that can run against the same local filesystem
+  database fixture.
+
+Exit criteria:
+
+- Each supported connector can open a database, create a table, insert rows,
+  run a transaction, execute a vector query, report a typed error, and close
+  cleanly.
+- Shared connector fixtures prevent drift between the Zig core and language
+  bindings.

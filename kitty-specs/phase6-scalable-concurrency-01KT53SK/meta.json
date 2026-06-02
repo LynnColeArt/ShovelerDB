@@ -1,0 +1,13 @@
+{
+  "coordination_branch": "kitty/mission-phase6-scalable-concurrency-01KT53SK",
+  "created_at": "2026-06-02T21:28:21.513589+00:00",
+  "friendly_name": "phase6 scalable concurrency",
+  "mission_id": "01KT53SKR9AA3N2ZVAZPZ0GWAN",
+  "mission_number": null,
+  "mission_slug": "phase6-scalable-concurrency-01KT53SK",
+  "mission_type": "software-dev",
+  "purpose_context": "This mission advances phase6 scalable concurrency on main so stakeholders can track the work from mission creation onward.",
+  "purpose_tldr": "phase6 scalable concurrency",
+  "slug": "phase6-scalable-concurrency-01KT53SK",
+  "target_branch": "main"
+}
