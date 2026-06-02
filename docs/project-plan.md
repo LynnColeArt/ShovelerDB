@@ -1,12 +1,14 @@
 # ShovelerDB Project Plan
 
 Current roadmap position: the MVP SQL/vector memory kernel mission completed on
-2026-06-01. ShovelerDB now has a Zig library/CLI, SQL policy and parser,
-in-memory row storage, transaction sessions, basic DDL/DML execution, constrained
-views and procedures, vector values/helpers, snapshot persistence, adapted
-fixture descriptors, CLI smokes, and benchmark coverage. The active follow-up
-mission is `mysql-style-syntax-completion-01KT2G5Z`, which turns the remaining
-"supported by design" SQL syntax into tested behavior or explicit rejections.
+2026-06-01, and the MySQL-style syntax-completion mission completed on
+2026-06-02. ShovelerDB now has a Zig library/CLI, SQL policy and parser,
+in-memory row storage, transaction sessions, basic DDL/DML execution, joins,
+CTEs, derived tables, grouping/aggregates, constrained views and procedures,
+vector values/helpers, SQL vector ranking, snapshot persistence, adapted fixture
+descriptors, CLI smokes, and benchmark coverage. The active follow-up mission is
+`agent-concurrency-mvcc-01KT499P`, which starts the agent-shaped concurrency
+model with stable reader snapshots and ordered writer commits.
 
 ## Phase 0: Repository Foundation
 
@@ -126,7 +128,8 @@ Exit criteria:
 
 ## Phase 6: Concurrency Model
 
-Status: planned.
+Status: started; session-level snapshots and serialized commit sequencing are
+the first implementation slice.
 
 Goal: make ShovelerDB useful as an agent memory kernel.
 

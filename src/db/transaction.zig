@@ -165,7 +165,8 @@ pub const Transaction = struct {
         }
 
         for (self.inserts.items) |inserted| {
-            try next.insertWithId(inserted.id, inserted.values);
+            const commit_id = if (next.get(inserted.id) == null) inserted.id else next.nextRowId();
+            try next.insertWithId(commit_id, inserted.values);
         }
 
         self.store.deinit();

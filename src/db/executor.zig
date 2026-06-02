@@ -118,6 +118,8 @@ pub const Database = struct {
     views: view.ViewRegistry,
     procedures: procedure.ProcedureRegistry,
     tables: std.ArrayList(TableState) = .empty,
+    commit_sequence: u64 = 0,
+    commit_lock: std.atomic.Mutex = .unlocked,
 
     pub fn init(allocator: std.mem.Allocator) Database {
         return .{
@@ -150,11 +152,11 @@ pub const Database = struct {
     pub fn executeStatement(self: *Database, session: *Session, statement: ast.Statement) anyerror!ExecutionResult {
         return switch (statement) {
             .begin => blk: {
-                try session.begin();
+                try session.begin(self);
                 break :blk .ok;
             },
             .commit => blk: {
-                try session.commit();
+                try session.commit(self);
                 self.refreshTablePointers();
                 break :blk .ok;
             },
@@ -543,6 +545,20 @@ pub const Database = struct {
         for (self.tables.items) |*table| {
             table.store.table = self.db_catalog.getTable(table.name).?;
         }
+    }
+
+    pub fn currentCommitSequence(self: *const Database) u64 {
+        return self.commit_sequence;
+    }
+
+    fn lockCommits(self: *Database) void {
+        while (!self.commit_lock.tryLock()) {
+            std.atomic.spinLoopHint();
+        }
+    }
+
+    fn unlockCommits(self: *Database) void {
+        self.commit_lock.unlock();
     }
 };
 
@@ -1045,10 +1061,42 @@ const TableTransaction = struct {
     }
 };
 
+const SnapshotTable = struct {
+    table: catalog.TableDef,
+    store: row_store.RowStore,
+
+    fn init(allocator: std.mem.Allocator, source: *const TableState) !SnapshotTable {
+        var table = try cloneTableDef(allocator, source.store.table.*);
+        errdefer table.deinit(allocator);
+
+        var store = row_store.RowStore.init(allocator, &table);
+        errdefer store.deinit();
+
+        for (source.store.rows()) |row| {
+            try store.insertWithId(row.id, row.values);
+        }
+        store.next_id = source.store.nextRowId();
+
+        return .{
+            .table = table,
+            .store = store,
+        };
+    }
+
+    fn deinit(self: *SnapshotTable, allocator: std.mem.Allocator) void {
+        self.store.deinit();
+        self.table.deinit(allocator);
+        self.* = undefined;
+    }
+};
+
 pub const Session = struct {
     allocator: std.mem.Allocator,
     active: bool = false,
+    snapshot_sequence: ?u64 = null,
+    last_commit_sequence: ?u64 = null,
     transactions: std.ArrayList(TableTransaction) = .empty,
+    snapshots: std.ArrayList(SnapshotTable) = .empty,
 
     pub fn init(allocator: std.mem.Allocator) Session {
         return .{ .allocator = allocator };
@@ -1057,20 +1105,41 @@ pub const Session = struct {
     pub fn deinit(self: *Session) void {
         for (self.transactions.items) |*entry| entry.deinit(self.allocator);
         self.transactions.deinit(self.allocator);
+        self.clearSnapshots();
+        self.snapshots.deinit(self.allocator);
         self.* = undefined;
     }
 
-    pub fn begin(self: *Session) !void {
+    pub fn begin(self: *Session, db: *Database) !void {
         if (self.active) return error.TransactionActive;
+        db.lockCommits();
+        defer db.unlockCommits();
+
         self.active = true;
+        errdefer {
+            self.clearSnapshots();
+            self.snapshot_sequence = null;
+            self.active = false;
+        }
+
+        self.snapshot_sequence = db.currentCommitSequence();
+        try self.captureSnapshots(db);
     }
 
-    pub fn commit(self: *Session) !void {
+    pub fn commit(self: *Session, db: *Database) !void {
         if (!self.active) return error.NoActiveTransaction;
+        db.lockCommits();
+        defer db.unlockCommits();
+
+        const had_writes = self.transactions.items.len > 0;
         for (self.transactions.items) |*entry| {
             try entry.tx.commit();
         }
+        if (had_writes) db.commit_sequence += 1;
+        self.last_commit_sequence = db.currentCommitSequence();
         self.clearTransactions();
+        self.clearSnapshots();
+        self.snapshot_sequence = null;
         self.active = false;
     }
 
@@ -1080,6 +1149,8 @@ pub const Session = struct {
             try entry.tx.rollback();
         }
         self.clearTransactions();
+        self.clearSnapshots();
+        self.snapshot_sequence = null;
         self.active = false;
     }
 
@@ -1102,6 +1173,14 @@ pub const Session = struct {
         return &self.transactions.items[index].tx;
     }
 
+    fn snapshotForRead(self: *const Session, table_name: []const u8) ?*const row_store.RowStore {
+        if (!self.active or self.snapshot_sequence == null) return null;
+        for (self.snapshots.items) |snapshot| {
+            if (std.ascii.eqlIgnoreCase(snapshot.table.name, table_name)) return &snapshot.store;
+        }
+        return null;
+    }
+
     fn findTransactionIndex(self: *const Session, table_name: []const u8) ?usize {
         for (self.transactions.items, 0..) |entry, index| {
             if (std.ascii.eqlIgnoreCase(entry.table_name, table_name)) return index;
@@ -1112,6 +1191,27 @@ pub const Session = struct {
     fn clearTransactions(self: *Session) void {
         for (self.transactions.items) |*entry| entry.deinit(self.allocator);
         self.transactions.clearRetainingCapacity();
+    }
+
+    fn captureSnapshots(self: *Session, db: *Database) !void {
+        try self.snapshots.ensureTotalCapacity(self.allocator, db.tables.items.len);
+        for (db.tables.items) |*table| {
+            var snapshot = try SnapshotTable.init(self.allocator, table);
+            errdefer snapshot.deinit(self.allocator);
+            try self.snapshots.append(self.allocator, snapshot);
+        }
+        self.refreshSnapshotPointers();
+    }
+
+    fn refreshSnapshotPointers(self: *Session) void {
+        for (self.snapshots.items) |*snapshot| {
+            snapshot.store.table = &snapshot.table;
+        }
+    }
+
+    fn clearSnapshots(self: *Session) void {
+        for (self.snapshots.items) |*snapshot| snapshot.deinit(self.allocator);
+        self.snapshots.clearRetainingCapacity();
     }
 };
 
@@ -1157,8 +1257,12 @@ fn countPrimaryColumns(columns: []const ast.ColumnDef) usize {
 
 fn scanRowsForTable(allocator: std.mem.Allocator, session: *const Session, table: *TableState) ![]row_store.Row {
     if (session.transactionForRead(table.name)) |tx| return tx.scan();
+    if (session.snapshotForRead(table.name)) |snapshot| return cloneRowsFromStore(allocator, snapshot);
+    return cloneRowsFromStore(allocator, &table.store);
+}
 
-    var rows = try allocator.alloc(row_store.Row, table.store.rows().len);
+fn cloneRowsFromStore(allocator: std.mem.Allocator, store: *const row_store.RowStore) ![]row_store.Row {
+    var rows = try allocator.alloc(row_store.Row, store.rows().len);
     errdefer allocator.free(rows);
 
     var count: usize = 0;
@@ -1166,12 +1270,43 @@ fn scanRowsForTable(allocator: std.mem.Allocator, session: *const Session, table
         for (rows[0..count]) |*row| row.deinit(allocator);
     }
 
-    for (table.store.rows(), 0..) |row, index| {
-        rows[index] = try row.clone(allocator, table.store.table);
+    for (store.rows(), 0..) |row, index| {
+        rows[index] = try row.clone(allocator, store.table);
         count += 1;
     }
 
     return rows;
+}
+
+fn cloneTableDef(allocator: std.mem.Allocator, source: catalog.TableDef) !catalog.TableDef {
+    var columns = try allocator.alloc(catalog.ColumnSpec, source.columns.len);
+    defer allocator.free(columns);
+    for (source.columns, 0..) |column, index| {
+        columns[index] = .{
+            .name = column.name,
+            .column_type = column.column_type,
+            .nullable = column.nullable,
+            .default_value = column.default_value,
+            .primary_key = column.primary_key,
+            .auto_increment = column.auto_increment,
+        };
+    }
+
+    var indexes = try allocator.alloc(catalog.IndexSpec, source.indexes.len);
+    defer allocator.free(indexes);
+    for (source.indexes, 0..) |index, offset| {
+        indexes[offset] = .{
+            .name = index.name,
+            .columns = index.columns,
+            .kind = index.kind,
+        };
+    }
+
+    return catalog.TableDef.init(allocator, .{
+        .name = source.name,
+        .columns = columns,
+        .indexes = indexes,
+    });
 }
 
 fn matchesWhere(
@@ -1672,6 +1807,105 @@ test "executor preserves transaction-local visibility and commit" {
     result = try db.executeSql(&reader, "SELECT * FROM memories;");
     defer result.deinit(allocator);
     try std.testing.expectEqual(@as(usize, 1), result.result_set.rows.len);
+}
+
+test "executor keeps read transaction snapshot stable across writer commit" {
+    const allocator = std.testing.allocator;
+
+    var db = Database.init(allocator);
+    defer db.deinit();
+    var seed = Session.init(allocator);
+    defer seed.deinit();
+    var reader = Session.init(allocator);
+    defer reader.deinit();
+    var writer = Session.init(allocator);
+    defer writer.deinit();
+    var observer = Session.init(allocator);
+    defer observer.deinit();
+
+    var result = try db.executeSql(&seed, "CREATE TABLE memories (id INTEGER, body TEXT);");
+    result.deinit(allocator);
+    result = try db.executeSql(&seed, "BEGIN;");
+    result.deinit(allocator);
+    result = try db.executeSql(&seed, "INSERT INTO memories VALUES (1, 'seed');");
+    result.deinit(allocator);
+    result = try db.executeSql(&seed, "COMMIT;");
+    result.deinit(allocator);
+    try std.testing.expectEqual(@as(u64, 1), db.currentCommitSequence());
+
+    result = try db.executeSql(&reader, "BEGIN;");
+    result.deinit(allocator);
+    try std.testing.expectEqual(@as(u64, 1), reader.snapshot_sequence.?);
+
+    result = try db.executeSql(&writer, "BEGIN;");
+    result.deinit(allocator);
+    result = try db.executeSql(&writer, "INSERT INTO memories VALUES (2, 'writer');");
+    result.deinit(allocator);
+    result = try db.executeSql(&writer, "COMMIT;");
+    result.deinit(allocator);
+    try std.testing.expectEqual(@as(u64, 2), db.currentCommitSequence());
+
+    result = try db.executeSql(&observer, "SELECT id FROM memories ORDER BY id ASC;");
+    try std.testing.expectEqual(@as(usize, 2), result.result_set.rows.len);
+    result.deinit(allocator);
+
+    result = try db.executeSql(&reader, "SELECT id, body FROM memories ORDER BY id ASC;");
+    try std.testing.expectEqual(@as(usize, 1), result.result_set.rows.len);
+    try std.testing.expectEqual(@as(i64, 1), result.result_set.rows[0].values[0].integer);
+    try std.testing.expectEqualStrings("seed", result.result_set.rows[0].values[1].text);
+    result.deinit(allocator);
+
+    result = try db.executeSql(&reader, "COMMIT;");
+    result.deinit(allocator);
+    try std.testing.expectEqual(@as(u64, 2), reader.last_commit_sequence.?);
+
+    result = try db.executeSql(&reader, "SELECT id FROM memories ORDER BY id ASC;");
+    defer result.deinit(allocator);
+    try std.testing.expectEqual(@as(usize, 2), result.result_set.rows.len);
+}
+
+test "executor serializes concurrent writer commits into deterministic sequence" {
+    const allocator = std.testing.allocator;
+
+    var db = Database.init(allocator);
+    defer db.deinit();
+    var setup = Session.init(allocator);
+    defer setup.deinit();
+    var first = Session.init(allocator);
+    defer first.deinit();
+    var second = Session.init(allocator);
+    defer second.deinit();
+    var reader = Session.init(allocator);
+    defer reader.deinit();
+
+    var result = try db.executeSql(&setup, "CREATE TABLE memories (id INTEGER, body TEXT);");
+    result.deinit(allocator);
+
+    result = try db.executeSql(&first, "BEGIN;");
+    result.deinit(allocator);
+    result = try db.executeSql(&second, "BEGIN;");
+    result.deinit(allocator);
+
+    result = try db.executeSql(&first, "INSERT INTO memories VALUES (1, 'first');");
+    result.deinit(allocator);
+    result = try db.executeSql(&second, "INSERT INTO memories VALUES (2, 'second');");
+    result.deinit(allocator);
+
+    result = try db.executeSql(&first, "COMMIT;");
+    result.deinit(allocator);
+    try std.testing.expectEqual(@as(u64, 1), first.last_commit_sequence.?);
+    try std.testing.expectEqual(@as(u64, 1), db.currentCommitSequence());
+
+    result = try db.executeSql(&second, "COMMIT;");
+    result.deinit(allocator);
+    try std.testing.expectEqual(@as(u64, 2), second.last_commit_sequence.?);
+    try std.testing.expectEqual(@as(u64, 2), db.currentCommitSequence());
+
+    result = try db.executeSql(&reader, "SELECT id, body FROM memories ORDER BY id ASC;");
+    defer result.deinit(allocator);
+    try std.testing.expectEqual(@as(usize, 2), result.result_set.rows.len);
+    try std.testing.expectEqual(@as(i64, 1), result.result_set.rows[0].values[0].integer);
+    try std.testing.expectEqual(@as(i64, 2), result.result_set.rows[1].values[0].integer);
 }
 
 test "executor updates deletes orders and limits rows" {

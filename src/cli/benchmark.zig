@@ -149,6 +149,11 @@ pub fn run(
     result.deinit(allocator);
     const sql_vector_elapsed = elapsedSince(io, sql_vector_start);
 
+    const concurrency_ops = @min(options.operations, options.rows);
+    const concurrency_start = now(io);
+    try runSnapshotReadWriteWorkload(allocator, &db, concurrency_ops);
+    const concurrency_elapsed = elapsedSince(io, concurrency_start);
+
     try printMetric(writer, "insert_commit", options.rows, insert_elapsed);
     try printMetric(writer, "select_scan", options.rows, scan_elapsed);
     try printMetric(writer, "grouped_scan", options.rows, grouped_elapsed);
@@ -156,6 +161,7 @@ pub fn run(
     try printMetric(writer, "rollback_updates", rollback_ops, rollback_elapsed);
     try printMetric(writer, "exact_vector_scan", options.vectors, vector_elapsed);
     try printMetric(writer, "sql_vector_rank", options.vectors, sql_vector_elapsed);
+    try printMetric(writer, "snapshot_read_write", concurrency_ops, concurrency_elapsed);
     if (nearest.len > 0) {
         try writer.print("  nearest_key: {d}\n", .{nearest[0].key});
         try writer.print("  nearest_distance: {d}\n", .{nearest[0].distance});
@@ -190,6 +196,34 @@ fn loadJoinRows(
         try executeAndDiscard(allocator, db, session, statement);
     }
     try executeAndDiscard(allocator, db, session, "COMMIT;");
+}
+
+fn runSnapshotReadWriteWorkload(
+    allocator: std.mem.Allocator,
+    db: *executor.Database,
+    operation_count: usize,
+) !void {
+    var reader = executor.Session.init(allocator);
+    defer reader.deinit();
+    var writer = executor.Session.init(allocator);
+    defer writer.deinit();
+
+    try executeAndDiscard(allocator, db, &reader, "BEGIN;");
+    for (0..operation_count) |index| {
+        try executeAndDiscard(allocator, db, &writer, "BEGIN;");
+        const statement = try std.fmt.allocPrint(
+            allocator,
+            "INSERT INTO scalar_memory VALUES ({d}, 'concurrent-{d}', {d}.75);",
+            .{ 1_000_000 + index, index + 1, index % 101 },
+        );
+        defer allocator.free(statement);
+        try executeAndDiscard(allocator, db, &writer, statement);
+        try executeAndDiscard(allocator, db, &writer, "COMMIT;");
+
+        var result = try db.executeSql(&reader, "SELECT id FROM scalar_memory ORDER BY id ASC LIMIT 1;");
+        result.deinit(allocator);
+    }
+    try executeAndDiscard(allocator, db, &reader, "COMMIT;");
 }
 
 fn loadSqlVectorRows(
