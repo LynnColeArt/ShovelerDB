@@ -80,6 +80,12 @@ The first promoted fixtures cover four evidence categories:
   because SQL autoincrement syntax is not part of the MVP surface yet.
 - `vector-distance-functions.md`: SQL-callable vector distance behavior from
   `mysql-test/main/vector_funcs.test`.
+- `query-syntax.md`: aliases, joins, CTEs, derived tables, view expansion, and
+  vector-aware filtering from `mysql-test/main/view_alias.test`.
+- `procedure-control-flow.md`: stored procedure parameters, variables, control
+  flow, and explicit cursor/dynamic-SQL rejections from `mysql-test/main/sp*`.
+- `grouping-aggregates.md`: aggregate and grouping behavior from
+  `mysql-test/main/sp-group.test`.
 
 Policy-rejected MariaDB files are still useful evidence. A rejection usually
 means the original file includes unsupported harness or server syntax such as
@@ -119,3 +125,6 @@ Example:
 ```bash
 zig build run -- run-adapted-test tests/fixtures/mariadb-adapted/vector-distance-functions.md
 ```
+
+`zig build test` executes the promoted WP08 syntax descriptors through
+MTR-lite, so fixture drift is now part of normal regression coverage.

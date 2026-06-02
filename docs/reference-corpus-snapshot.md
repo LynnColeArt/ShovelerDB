@@ -87,13 +87,16 @@ engine-selection syntax.
 
 ## Promoted Native Fixtures
 
-WP07 adds a small native fixture set under
-`tests/fixtures/mariadb-adapted/`. These descriptors keep provenance while
-rewriting behavior into ShovelerDB's supported surface:
+WP08 promotes a native fixture set under `tests/fixtures/mariadb-adapted/`.
+These descriptors keep provenance while rewriting behavior into ShovelerDB's
+supported surface:
 
 ```text
 tests/fixtures/mariadb-adapted/autoincrement-deferred.md
+tests/fixtures/mariadb-adapted/grouping-aggregates.md
+tests/fixtures/mariadb-adapted/procedure-control-flow.md
 tests/fixtures/mariadb-adapted/procedure-single-statement.md
+tests/fixtures/mariadb-adapted/query-syntax.md
 tests/fixtures/mariadb-adapted/vector-distance-functions.md
 tests/fixtures/mariadb-adapted/vector-values.md
 tests/fixtures/mariadb-adapted/view-basic.md
@@ -113,8 +116,14 @@ zig build run -- run-adapted-test tests/fixtures/mariadb-adapted/view-basic.md
 zig build run -- run-adapted-test tests/fixtures/mariadb-adapted/procedure-single-statement.md
 zig build run -- run-adapted-test tests/fixtures/mariadb-adapted/autoincrement-deferred.md
 zig build run -- run-adapted-test tests/fixtures/mariadb-adapted/vector-distance-functions.md
+zig build run -- run-adapted-test tests/fixtures/mariadb-adapted/query-syntax.md
+zig build run -- run-adapted-test tests/fixtures/mariadb-adapted/procedure-control-flow.md
+zig build run -- run-adapted-test tests/fixtures/mariadb-adapted/grouping-aggregates.md
 ```
 
-The syntax-completion mission is still responsible for promoting alias, join,
-CTE, grouping, DDL, and richer stored-procedure cases into executable adapted
-coverage as those features land.
+`zig build test` also executes the query syntax, procedure control-flow, and
+grouping/aggregate descriptors through MTR-lite.
+
+The syntax-completion mission is still responsible for final acceptance
+hardening, benchmark refreshes, and any additional fixture promotion needed to
+close WP09.
