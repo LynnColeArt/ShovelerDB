@@ -125,8 +125,8 @@ MariaDB fixture execution.
 **Requirement Refs**: FR-002, FR-017, FR-018
 **Dependencies**: WP01, WP02, WP04, WP05, WP06, WP07
 
-- [ ] T020 Promote adapted MariaDB syntax fixtures into executable coverage.
-- [ ] T021 Refresh reference corpus snapshot and fixture docs.
+- [x] T020 Promote adapted MariaDB syntax fixtures into executable coverage.
+- [x] T021 Refresh reference corpus snapshot and fixture docs.
 
 ### WP09 - Acceptance Hardening
 
