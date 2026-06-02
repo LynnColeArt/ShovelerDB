@@ -1,4 +1,16 @@
 {
+  "acceptance_history": [
+    {
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-06-02T12:35:19.606729+00:00",
+      "accepted_by": "codex:gpt-5:implementer-ivan",
+      "accepted_from_commit": "8dc15068c7db53ac76eb38d60ab8c0a6684a1c1e"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-06-02T12:35:19.606729+00:00",
+  "accepted_by": "codex:gpt-5:implementer-ivan",
+  "accepted_from_commit": "8dc15068c7db53ac76eb38d60ab8c0a6684a1c1e",
   "coordination_branch": "kitty/mission-mysql-style-syntax-completion-01KT2G5Z",
   "created_at": "2026-06-01T21:07:06.065266+00:00",
   "friendly_name": "mysql style syntax completion",
