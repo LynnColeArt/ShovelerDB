@@ -467,11 +467,11 @@ pub const Database = struct {
                 var mutations: usize = 0;
                 var iterations: usize = 0;
                 while (true) {
-                    if (iterations >= max_procedure_loop_iterations) return error.UnsupportedProcedure;
                     var condition = try evalProcedureExpression(self.allocator, env, loop.condition);
                     defer condition.deinit(self.allocator);
                     if (condition != .boolean) return error.TypeMismatch;
                     if (!condition.boolean) break;
+                    if (iterations >= max_procedure_loop_iterations) return error.UnsupportedProcedure;
                     mutations += try self.executeProcedureBody(session, loop.body, env);
                     iterations += 1;
                 }
