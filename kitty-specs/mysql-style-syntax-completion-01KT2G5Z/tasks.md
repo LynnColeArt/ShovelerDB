@@ -114,9 +114,9 @@ MariaDB fixture execution.
 **Requirement Refs**: FR-014, FR-015, FR-016, FR-018
 **Dependencies**: WP02, WP04, WP06
 
-- [ ] T017 Parse procedure parameters and body statements.
-- [ ] T018 Execute DECLARE, SET, IF, bounded WHILE, and SQL body statements.
-- [ ] T019 Classify unsupported stored-program features explicitly.
+- [x] T017 Parse procedure parameters and body statements.
+- [x] T018 Execute DECLARE, SET, IF, bounded WHILE, and SQL body statements.
+- [x] T019 Classify unsupported stored-program features explicitly.
 
 ### WP08 - Adapted MariaDB Fixture Execution
 
