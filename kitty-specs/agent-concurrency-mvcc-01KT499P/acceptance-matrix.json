@@ -2,87 +2,87 @@
   "mission_slug": "agent-concurrency-mvcc-01KT499P",
   "mission_number": "",
   "mission_type": "software-dev",
-  "overall_verdict": "pending",
+  "overall_verdict": "pass",
   "criteria": [
     {
       "criterion_id": "FR-001",
-      "description": "Verify FR-001 is satisfied",
+      "description": "A session beginning a transaction captures a stable snapshot of committed table rows.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "`zig build test` includes `executor keeps read transaction snapshot stable across writer commit`, which begins a reader after a seed commit and verifies its snapshot sequence.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5:implementer-ivan",
+      "verified_at": "2026-06-02T15:51:00Z",
+      "notes": "Snapshot capture is implemented in `Session.begin` through owned `SnapshotTable` rows."
     },
     {
       "criterion_id": "FR-002",
-      "description": "Verify FR-002 is satisfied",
+      "description": "A reader with an active snapshot does not see rows committed after its BEGIN.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "`executor keeps read transaction snapshot stable across writer commit` commits a writer row after the reader begins, then verifies the reader still sees only the seed row.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5:implementer-ivan",
+      "verified_at": "2026-06-02T15:51:00Z",
+      "notes": "The visibility order checks transaction overlay, then snapshot store, then current committed store."
     },
     {
       "criterion_id": "FR-003",
-      "description": "Verify FR-003 is satisfied",
+      "description": "After a reader commits or rolls back, later reads see the latest committed database state.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "`executor keeps read transaction snapshot stable across writer commit` commits the reader transaction and verifies the same session then sees both committed rows.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5:implementer-ivan",
+      "verified_at": "2026-06-02T15:51:00Z",
+      "notes": "Session commit clears snapshots before the next read."
     },
     {
       "criterion_id": "FR-004",
-      "description": "Verify FR-004 is satisfied",
+      "description": "Writers can begin before each other commits and still land through deterministic commit ordering.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "`executor serializes concurrent writer commits into deterministic sequence` begins two writers before either commits, commits both, and verifies both rows are visible.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5:implementer-ivan",
+      "verified_at": "2026-06-02T15:51:00Z",
+      "notes": "Commit serialization uses the database commit lock and sequence counter."
     },
     {
       "criterion_id": "FR-005",
-      "description": "Verify FR-005 is satisfied",
+      "description": "Commit sequence numbers increment once per write transaction and do not increment for read-only transaction close.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "The MVCC tests assert commit sequence values after seed and writer commits; the reader close reports the current sequence without adding a write increment.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5:implementer-ivan",
+      "verified_at": "2026-06-02T15:51:00Z",
+      "notes": "`Session.commit` increments `commit_sequence` only when the session has table transactions."
     },
     {
       "criterion_id": "FR-006",
-      "description": "Verify FR-006 is satisfied",
+      "description": "Writer-local inserts, updates, deletes, views, procedures, joins, grouping, and vector queries continue to use the visible row source for the session.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "`zig build test` passed the existing executor, query-source, aggregate, procedure, DDL, kernel, and adapted fixture suites after the MVCC change.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5:implementer-ivan",
+      "verified_at": "2026-06-02T15:51:00Z",
+      "notes": "The change preserves the existing query-source bridge by routing base-table scans through `scanRowsForTable`."
     },
     {
       "criterion_id": "FR-007",
-      "description": "Verify FR-007 is satisfied",
+      "description": "Snapshot tables own their table metadata so snapshot row stores do not depend on mutable catalog pointers.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "`zig build test` exercises snapshot reads through `SnapshotTable`, which clones table definitions and attaches snapshot row stores to owned metadata.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5:implementer-ivan",
+      "verified_at": "2026-06-02T15:51:00Z",
+      "notes": "`SnapshotTable.init` uses `cloneTableDef` before cloning rows."
     },
     {
       "criterion_id": "FR-008",
-      "description": "Verify FR-008 is satisfied",
+      "description": "The benchmark CLI reports a snapshot read/write metric alongside existing hot paths.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "`zig build run -- benchmark --rows 20 --vectors 8 --dimensions 3 --operations 5` passed and reported `snapshot_read_write`.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5:implementer-ivan",
+      "verified_at": "2026-06-02T15:51:00Z",
+      "notes": "The metric is documented in `docs/acceptance-agent-concurrency-mvcc.md`."
     }
   ],
   "negative_invariants": []
