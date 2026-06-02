@@ -29,6 +29,7 @@ owned_files:
 - docs/acceptance-syntax-completion.md
 role: implementer
 tags: []
+agent: "codex:gpt-5:implementer-ivan:implementer"
 ---
 
 # WP09 - Acceptance Hardening
@@ -52,3 +53,7 @@ keep Spec Kitty system notes report-ready.
 - Full validation passes or known external blockers are documented.
 - Benchmarks cover the new hot paths.
 - Spec Kitty notes include all new repeated or unexpected behavior.
+
+## Activity Log
+
+- 2026-06-02T12:19:13Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1166952 – Ready for review: added SQL benchmark metrics for joined_filter and sql_vector_rank, created docs/acceptance-syntax-completion.md with full validation and CLI smoke evidence, and refreshed Spec Kitty notes for WP09 lane behavior. Validation in lane at 3942bfa: zig build test exit 0; zig build run -- benchmark --rows 20 --vectors 8 --dimensions 3 --operations 5 exit 0 with joined_filter/sql_vector_rank metrics; git diff --check main..HEAD exit 0; full corpus classify and all adapted fixtures previously passed during WP09.
