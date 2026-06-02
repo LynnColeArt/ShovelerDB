@@ -62,6 +62,16 @@ pub fn run(
 
     var result = try db.executeSql(&session, "CREATE TABLE scalar_memory (id INTEGER, body TEXT, score FLOAT);");
     result.deinit(allocator);
+    result = try db.executeSql(&session, "CREATE TABLE memory_tags (id INTEGER, memory_id INTEGER, name TEXT);");
+    result.deinit(allocator);
+    const create_vector_table = try std.fmt.allocPrint(
+        allocator,
+        "CREATE TABLE vector_memory (id INTEGER, embedding VECTOR({d}));",
+        .{options.dimensions},
+    );
+    defer allocator.free(create_vector_table);
+    result = try db.executeSql(&session, create_vector_table);
+    result.deinit(allocator);
 
     const insert_start = now(io);
     result = try db.executeSql(&session, "BEGIN;");
@@ -80,6 +90,9 @@ pub fn run(
     result.deinit(allocator);
     const insert_elapsed = elapsedSince(io, insert_start);
 
+    try loadJoinRows(allocator, &db, &session, options.rows);
+    try loadSqlVectorRows(allocator, &db, &session, options.vectors, options.dimensions);
+
     const scan_start = now(io);
     result = try db.executeSql(&session, "SELECT * FROM scalar_memory;");
     result.deinit(allocator);
@@ -89,6 +102,11 @@ pub fn run(
     result = try db.executeSql(&session, "SELECT score, COUNT(*) AS total FROM scalar_memory GROUP BY score HAVING total > 1 ORDER BY total DESC LIMIT 5;");
     result.deinit(allocator);
     const grouped_elapsed = elapsedSince(io, grouped_start);
+
+    const joined_start = now(io);
+    result = try db.executeSql(&session, "SELECT m.id, t.name FROM scalar_memory AS m JOIN memory_tags AS t ON t.memory_id = m.id WHERE t.name = 'project' ORDER BY m.id ASC LIMIT 10;");
+    result.deinit(allocator);
+    const joined_elapsed = elapsedSince(io, joined_start);
 
     const rollback_start = now(io);
     result = try db.executeSql(&session, "BEGIN;");
@@ -118,15 +136,102 @@ pub fn run(
     defer allocator.free(nearest);
     const vector_elapsed = elapsedSince(io, vector_start);
 
+    const query_vector_literal = try makeSqlVectorLiteral(allocator, options.dimensions, 0);
+    defer allocator.free(query_vector_literal);
+    const sql_vector_query = try std.fmt.allocPrint(
+        allocator,
+        "SELECT id, l2_distance(embedding, {s}) AS distance FROM vector_memory ORDER BY distance ASC LIMIT 10;",
+        .{query_vector_literal},
+    );
+    defer allocator.free(sql_vector_query);
+    const sql_vector_start = now(io);
+    result = try db.executeSql(&session, sql_vector_query);
+    result.deinit(allocator);
+    const sql_vector_elapsed = elapsedSince(io, sql_vector_start);
+
     try printMetric(writer, "insert_commit", options.rows, insert_elapsed);
     try printMetric(writer, "select_scan", options.rows, scan_elapsed);
     try printMetric(writer, "grouped_scan", options.rows, grouped_elapsed);
+    try printMetric(writer, "joined_filter", options.rows, joined_elapsed);
     try printMetric(writer, "rollback_updates", rollback_ops, rollback_elapsed);
     try printMetric(writer, "exact_vector_scan", options.vectors, vector_elapsed);
+    try printMetric(writer, "sql_vector_rank", options.vectors, sql_vector_elapsed);
     if (nearest.len > 0) {
         try writer.print("  nearest_key: {d}\n", .{nearest[0].key});
         try writer.print("  nearest_distance: {d}\n", .{nearest[0].distance});
     }
+}
+
+fn executeAndDiscard(
+    allocator: std.mem.Allocator,
+    db: *executor.Database,
+    session: *executor.Session,
+    sql: []const u8,
+) !void {
+    var result = try db.executeSql(session, sql);
+    result.deinit(allocator);
+}
+
+fn loadJoinRows(
+    allocator: std.mem.Allocator,
+    db: *executor.Database,
+    session: *executor.Session,
+    row_count: usize,
+) !void {
+    try executeAndDiscard(allocator, db, session, "BEGIN;");
+    for (0..row_count) |index| {
+        const tag = if (index % 2 == 0) "project" else "personal";
+        const statement = try std.fmt.allocPrint(
+            allocator,
+            "INSERT INTO memory_tags VALUES ({d}, {d}, '{s}');",
+            .{ index + 1, index + 1, tag },
+        );
+        defer allocator.free(statement);
+        try executeAndDiscard(allocator, db, session, statement);
+    }
+    try executeAndDiscard(allocator, db, session, "COMMIT;");
+}
+
+fn loadSqlVectorRows(
+    allocator: std.mem.Allocator,
+    db: *executor.Database,
+    session: *executor.Session,
+    vector_count: usize,
+    dimensions: usize,
+) !void {
+    try executeAndDiscard(allocator, db, session, "BEGIN;");
+    for (0..vector_count) |index| {
+        const literal = try makeSqlVectorLiteral(allocator, dimensions, index);
+        defer allocator.free(literal);
+        const statement = try std.fmt.allocPrint(
+            allocator,
+            "INSERT INTO vector_memory VALUES ({d}, {s});",
+            .{ index + 1, literal },
+        );
+        defer allocator.free(statement);
+        try executeAndDiscard(allocator, db, session, statement);
+    }
+    try executeAndDiscard(allocator, db, session, "COMMIT;");
+}
+
+fn makeSqlVectorLiteral(
+    allocator: std.mem.Allocator,
+    dimensions: usize,
+    seed: usize,
+) ![]u8 {
+    var literal: std.ArrayList(u8) = .empty;
+    errdefer literal.deinit(allocator);
+
+    try literal.append(allocator, '[');
+    for (0..dimensions) |dimension| {
+        if (dimension > 0) try literal.appendSlice(allocator, ", ");
+        const component = try std.fmt.allocPrint(allocator, "{d}", .{(seed + dimension) % 17});
+        defer allocator.free(component);
+        try literal.appendSlice(allocator, component);
+    }
+    try literal.append(allocator, ']');
+
+    return literal.toOwnedSlice(allocator);
 }
 
 fn parseInlineOption(options: *Options, arg: []const u8) !bool {
@@ -231,4 +336,11 @@ test "benchmark rejects unknown and incomplete options" {
     try std.testing.expectError(error.InvalidOption, parseOptions(&.{"--wat"}));
     try std.testing.expectError(error.MissingOptionValue, parseOptions(&.{"--rows"}));
     try std.testing.expectError(error.InvalidOption, parseOptions(&.{ "--rows", "nope" }));
+}
+
+test "benchmark sql vector literal uses requested dimensions" {
+    const literal = try makeSqlVectorLiteral(std.testing.allocator, 4, 2);
+    defer std.testing.allocator.free(literal);
+
+    try std.testing.expectEqualStrings("[2, 3, 4, 5]", literal);
 }
