@@ -1,6 +1,7 @@
 const std = @import("std");
 const ast = @import("../sql/ast.zig");
 const parser = @import("../sql/parser.zig");
+const procedure_body = @import("../sql/procedure_body.zig");
 const catalog = @import("catalog.zig");
 const procedure = @import("procedure.zig");
 const query_source = @import("query_source.zig");
@@ -9,6 +10,12 @@ const transaction = @import("transaction.zig");
 const value = @import("value.zig");
 const view = @import("view.zig");
 const vector_distance = @import("../vector/distance.zig");
+
+const max_procedure_loop_iterations = 10_000;
+const ProcedureMaterializeError = error{
+    OutOfMemory,
+    UnsupportedProcedure,
+};
 
 pub const DiagnosticKind = enum {
     parse_diagnostic,
@@ -285,7 +292,7 @@ pub const Database = struct {
     fn createProcedure(self: *Database, statement: ast.ProcedureStatement) !void {
         try self.db_catalog.registerProcedure(statement.name, statement.body_sql);
         errdefer self.db_catalog.dropProcedure(statement.name) catch {};
-        try self.procedures.create(statement.name, statement.body_sql);
+        try self.procedures.create(statement.name, statement.params, statement.body_sql);
     }
 
     fn executeInsert(self: *Database, session: *Session, statement: ast.InsertStatement) !usize {
@@ -379,19 +386,98 @@ pub const Database = struct {
     }
 
     fn executeCall(self: *Database, session: *Session, call: ast.CallStatement) anyerror!ExecutionResult {
-        if (call.args.len != 0) return error.UnsupportedProcedure;
         const stored = self.procedures.get(call.name) orelse return error.UnknownObject;
+        if (call.args.len != stored.params.len) return error.ColumnCountMismatch;
 
-        const parsed = try parser.parse(self.allocator, stored.body_sql);
-        defer parsed.deinit(self.allocator);
+        var env = ProcedureEnv.init(self.allocator);
+        defer env.deinit();
 
-        return switch (parsed) {
-            .diagnostic => error.UnsupportedProcedure,
-            .statement => |statement| switch (statement) {
-                .call, .begin, .commit, .rollback, .create_procedure, .drop_procedure => error.UnsupportedProcedure,
-                else => try self.executeStatement(session, statement),
+        for (stored.params, call.args) |param, arg| {
+            var runtime_value = try evalProcedureExpression(self.allocator, &env, arg);
+            errdefer runtime_value.deinit(self.allocator);
+            const column_type = try toCatalogColumnType(param.column_type);
+            if (runtime_value != .null) try column_type.acceptsValue(runtime_value);
+            try env.declare(param.name, runtime_value);
+            runtime_value = .null;
+        }
+
+        return .{ .mutation_count = try self.executeProcedureBody(session, stored.body, &env) };
+    }
+
+    fn executeProcedureBody(
+        self: *Database,
+        session: *Session,
+        body: procedure_body.Body,
+        env: *ProcedureEnv,
+    ) anyerror!usize {
+        var mutations: usize = 0;
+        for (body.statements) |statement| {
+            mutations += try self.executeProcedureStatement(session, statement, env);
+        }
+        return mutations;
+    }
+
+    fn executeProcedureStatement(
+        self: *Database,
+        session: *Session,
+        statement: procedure_body.Statement,
+        env: *ProcedureEnv,
+    ) anyerror!usize {
+        switch (statement) {
+            .declare_var => |declare| {
+                var runtime_value = if (declare.default_value) |default|
+                    try evalProcedureExpression(self.allocator, env, default)
+                else
+                    .null;
+                errdefer runtime_value.deinit(self.allocator);
+                try env.declare(declare.name, runtime_value);
+                runtime_value = .null;
+                return 0;
             },
-        };
+            .set_var => |set| {
+                var runtime_value = try evalProcedureExpression(self.allocator, env, set.value);
+                errdefer runtime_value.deinit(self.allocator);
+                try env.set(set.name, runtime_value);
+                runtime_value = .null;
+                return 0;
+            },
+            .sql => |sql| {
+                var materialized = try materializeProcedureStatement(self.allocator, sql.statement, env);
+                defer materialized.deinit(self.allocator);
+
+                var result = try self.executeStatement(session, materialized);
+                defer result.deinit(self.allocator);
+
+                return switch (result) {
+                    .ok => 0,
+                    .mutation_count => |count| count,
+                    .result_set => 0,
+                };
+            },
+            .if_statement => |branch| {
+                var condition = try evalProcedureExpression(self.allocator, env, branch.condition);
+                defer condition.deinit(self.allocator);
+                if (condition != .boolean) return error.TypeMismatch;
+                return if (condition.boolean)
+                    try self.executeProcedureBody(session, branch.then_body, env)
+                else
+                    try self.executeProcedureBody(session, branch.else_body, env);
+            },
+            .while_statement => |loop| {
+                var mutations: usize = 0;
+                var iterations: usize = 0;
+                while (true) {
+                    if (iterations >= max_procedure_loop_iterations) return error.UnsupportedProcedure;
+                    var condition = try evalProcedureExpression(self.allocator, env, loop.condition);
+                    defer condition.deinit(self.allocator);
+                    if (condition != .boolean) return error.TypeMismatch;
+                    if (!condition.boolean) break;
+                    mutations += try self.executeProcedureBody(session, loop.body, env);
+                    iterations += 1;
+                }
+                return mutations;
+            },
+        }
     }
 
     fn rowValuesForInsert(
@@ -459,6 +545,494 @@ pub const Database = struct {
         }
     }
 };
+
+const ProcedureVariable = struct {
+    name: []u8,
+    runtime_value: value.Value,
+
+    fn deinit(self: *ProcedureVariable, allocator: std.mem.Allocator) void {
+        allocator.free(self.name);
+        self.runtime_value.deinit(allocator);
+        self.* = undefined;
+    }
+};
+
+const ProcedureEnv = struct {
+    allocator: std.mem.Allocator,
+    variables: std.ArrayList(ProcedureVariable) = .empty,
+
+    fn init(allocator: std.mem.Allocator) ProcedureEnv {
+        return .{ .allocator = allocator };
+    }
+
+    fn deinit(self: *ProcedureEnv) void {
+        for (self.variables.items) |*variable| variable.deinit(self.allocator);
+        self.variables.deinit(self.allocator);
+        self.* = undefined;
+    }
+
+    fn declare(self: *ProcedureEnv, name: []const u8, runtime_value: value.Value) !void {
+        if (self.findIndex(name) != null) return error.DuplicateObject;
+        const variable = ProcedureVariable{
+            .name = try self.allocator.dupe(u8, name),
+            .runtime_value = runtime_value,
+        };
+        errdefer self.allocator.free(variable.name);
+        try self.variables.append(self.allocator, variable);
+    }
+
+    fn set(self: *ProcedureEnv, name: []const u8, runtime_value: value.Value) !void {
+        const index = self.findIndex(name) orelse return error.UnknownObject;
+        self.variables.items[index].runtime_value.deinit(self.allocator);
+        self.variables.items[index].runtime_value = runtime_value;
+    }
+
+    fn get(self: *const ProcedureEnv, name: []const u8) ?value.Value {
+        const index = self.findIndex(name) orelse return null;
+        return self.variables.items[index].runtime_value;
+    }
+
+    fn findIndex(self: *const ProcedureEnv, name: []const u8) ?usize {
+        for (self.variables.items, 0..) |variable, index| {
+            if (std.ascii.eqlIgnoreCase(variable.name, name)) return index;
+        }
+        return null;
+    }
+};
+
+fn materializeProcedureStatement(
+    allocator: std.mem.Allocator,
+    statement: ast.Statement,
+    env: *const ProcedureEnv,
+) ProcedureMaterializeError!ast.Statement {
+    return switch (statement) {
+        .insert => |insert| .{ .insert = try materializeInsertStatement(allocator, insert, env) },
+        .update => |update| .{ .update = try materializeUpdateStatement(allocator, update, env) },
+        .delete => |delete| .{ .delete = try materializeDeleteStatement(allocator, delete, env) },
+        .select => |select| .{ .select = try materializeSelectStatement(allocator, select, env) },
+        else => error.UnsupportedProcedure,
+    };
+}
+
+fn materializeInsertStatement(
+    allocator: std.mem.Allocator,
+    statement: ast.InsertStatement,
+    env: *const ProcedureEnv,
+) ProcedureMaterializeError!ast.InsertStatement {
+    const table_name = try allocator.dupe(u8, statement.table_name);
+    errdefer allocator.free(table_name);
+
+    var columns = try allocator.alloc([]const u8, statement.columns.len);
+    errdefer allocator.free(columns);
+    var column_count: usize = 0;
+    errdefer {
+        for (columns[0..column_count]) |column| allocator.free(column);
+    }
+    for (statement.columns, 0..) |column, index| {
+        columns[index] = try allocator.dupe(u8, column);
+        column_count += 1;
+    }
+
+    var values = try allocator.alloc(ast.Expression, statement.values.len);
+    errdefer allocator.free(values);
+    var value_count: usize = 0;
+    errdefer {
+        for (values[0..value_count]) |expression| expression.deinit(allocator);
+    }
+    for (statement.values, 0..) |expression, index| {
+        values[index] = try materializeProcedureExpression(allocator, expression, env);
+        value_count += 1;
+    }
+
+    return .{
+        .table_name = table_name,
+        .columns = columns,
+        .values = values,
+    };
+}
+
+fn materializeUpdateStatement(
+    allocator: std.mem.Allocator,
+    statement: ast.UpdateStatement,
+    env: *const ProcedureEnv,
+) ProcedureMaterializeError!ast.UpdateStatement {
+    const table_name = try allocator.dupe(u8, statement.table_name);
+    errdefer allocator.free(table_name);
+
+    var assignments = try allocator.alloc(ast.Assignment, statement.assignments.len);
+    errdefer allocator.free(assignments);
+    var assignment_count: usize = 0;
+    errdefer {
+        for (assignments[0..assignment_count]) |assignment| assignment.deinit(allocator);
+    }
+    for (statement.assignments, 0..) |assignment, index| {
+        var column: ?[]const u8 = try allocator.dupe(u8, assignment.column);
+        errdefer if (column) |owned| allocator.free(owned);
+        var expression: ?ast.Expression = try materializeProcedureExpression(allocator, assignment.value, env);
+        errdefer if (expression) |owned| owned.deinit(allocator);
+
+        assignments[index] = .{
+            .column = column.?,
+            .value = expression.?,
+        };
+        column = null;
+        expression = null;
+        assignment_count += 1;
+    }
+
+    var where_clause: ?ast.Expression = null;
+    errdefer if (where_clause) |where| where.deinit(allocator);
+    if (statement.where_clause) |where| {
+        where_clause = try materializeProcedureExpression(allocator, where, env);
+    }
+
+    return .{
+        .table_name = table_name,
+        .assignments = assignments,
+        .where_clause = where_clause,
+    };
+}
+
+fn materializeDeleteStatement(
+    allocator: std.mem.Allocator,
+    statement: ast.DeleteStatement,
+    env: *const ProcedureEnv,
+) ProcedureMaterializeError!ast.DeleteStatement {
+    const table_name = try allocator.dupe(u8, statement.table_name);
+    errdefer allocator.free(table_name);
+
+    var where_clause: ?ast.Expression = null;
+    errdefer if (where_clause) |where| where.deinit(allocator);
+    if (statement.where_clause) |where| {
+        where_clause = try materializeProcedureExpression(allocator, where, env);
+    }
+
+    return .{
+        .table_name = table_name,
+        .where_clause = where_clause,
+    };
+}
+
+fn materializeSelectStatement(
+    allocator: std.mem.Allocator,
+    statement: ast.SelectStatement,
+    env: *const ProcedureEnv,
+) ProcedureMaterializeError!ast.SelectStatement {
+    var materialized = ast.SelectStatement{
+        .projections = &.{},
+    };
+    errdefer materialized.deinit(allocator);
+
+    materialized.ctes = try materializeCtes(allocator, statement.ctes, env);
+    materialized.projection_items = try materializeProjectionItems(allocator, statement.projection_items, env);
+    materialized.projections = try materializeExpressions(allocator, statement.projections, env);
+
+    if (statement.from) |from| {
+        materialized.from = try allocator.dupe(u8, from);
+    }
+    if (statement.source) |source| {
+        var row_source: ?*ast.RowSource = try allocator.create(ast.RowSource);
+        errdefer if (row_source) |owned| allocator.destroy(owned);
+        row_source.?.* = try materializeRowSource(allocator, source.*, env);
+        errdefer if (row_source) |owned| owned.deinit(allocator);
+        materialized.source = row_source.?;
+        row_source = null;
+    }
+    if (statement.where_clause) |where_clause| {
+        materialized.where_clause = try materializeProcedureExpression(allocator, where_clause, env);
+    }
+    materialized.group_by = try materializeExpressions(allocator, statement.group_by, env);
+    if (statement.having) |having| {
+        materialized.having = try materializeProcedureExpression(allocator, having, env);
+    }
+    materialized.order_by = try materializeOrderKeys(allocator, statement.order_by, env);
+    materialized.limit = statement.limit;
+
+    return materialized;
+}
+
+fn materializeCtes(
+    allocator: std.mem.Allocator,
+    ctes: []const ast.CommonTableExpression,
+    env: *const ProcedureEnv,
+) ProcedureMaterializeError![]ast.CommonTableExpression {
+    var materialized = try allocator.alloc(ast.CommonTableExpression, ctes.len);
+    errdefer allocator.free(materialized);
+
+    var count: usize = 0;
+    errdefer {
+        for (materialized[0..count]) |cte| cte.deinit(allocator);
+    }
+    for (ctes, 0..) |cte, index| {
+        var name: ?[]const u8 = try allocator.dupe(u8, cte.name);
+        errdefer if (name) |owned| allocator.free(owned);
+
+        var query: ?*ast.SelectStatement = try allocator.create(ast.SelectStatement);
+        errdefer if (query) |owned| allocator.destroy(owned);
+        query.?.* = try materializeSelectStatement(allocator, cte.query.*, env);
+        errdefer if (query) |owned| owned.deinit(allocator);
+
+        materialized[index] = .{
+            .name = name.?,
+            .query = query.?,
+        };
+        name = null;
+        query = null;
+        count += 1;
+    }
+
+    return materialized;
+}
+
+fn materializeProjectionItems(
+    allocator: std.mem.Allocator,
+    projections: []const ast.Projection,
+    env: *const ProcedureEnv,
+) ProcedureMaterializeError![]ast.Projection {
+    var materialized = try allocator.alloc(ast.Projection, projections.len);
+    errdefer allocator.free(materialized);
+
+    var count: usize = 0;
+    errdefer {
+        for (materialized[0..count]) |projection| projection.deinit(allocator);
+    }
+    for (projections, 0..) |projection, index| {
+        var expression: ?ast.Expression = try materializeProcedureExpression(allocator, projection.expression, env);
+        errdefer if (expression) |owned| owned.deinit(allocator);
+
+        var alias: ?[]const u8 = null;
+        errdefer if (alias) |owned| allocator.free(owned);
+        if (projection.alias) |projection_alias| {
+            alias = try allocator.dupe(u8, projection_alias);
+        }
+
+        materialized[index] = .{
+            .expression = expression.?,
+            .alias = alias,
+        };
+        expression = null;
+        alias = null;
+        count += 1;
+    }
+
+    return materialized;
+}
+
+fn materializeExpressions(
+    allocator: std.mem.Allocator,
+    expressions: []const ast.Expression,
+    env: *const ProcedureEnv,
+) ProcedureMaterializeError![]ast.Expression {
+    var materialized = try allocator.alloc(ast.Expression, expressions.len);
+    errdefer allocator.free(materialized);
+
+    var count: usize = 0;
+    errdefer {
+        for (materialized[0..count]) |expression| expression.deinit(allocator);
+    }
+    for (expressions, 0..) |expression, index| {
+        materialized[index] = try materializeProcedureExpression(allocator, expression, env);
+        count += 1;
+    }
+
+    return materialized;
+}
+
+fn materializeOrderKeys(
+    allocator: std.mem.Allocator,
+    order_by: []const ast.OrderKey,
+    env: *const ProcedureEnv,
+) ProcedureMaterializeError![]ast.OrderKey {
+    var materialized = try allocator.alloc(ast.OrderKey, order_by.len);
+    errdefer allocator.free(materialized);
+
+    var count: usize = 0;
+    errdefer {
+        for (materialized[0..count]) |key| key.deinit(allocator);
+    }
+    for (order_by, 0..) |key, index| {
+        materialized[index] = .{
+            .expression = try materializeProcedureExpression(allocator, key.expression, env),
+            .direction = key.direction,
+        };
+        count += 1;
+    }
+
+    return materialized;
+}
+
+fn materializeRowSource(
+    allocator: std.mem.Allocator,
+    source: ast.RowSource,
+    env: *const ProcedureEnv,
+) ProcedureMaterializeError!ast.RowSource {
+    return switch (source) {
+        .base_table => |table| blk: {
+            const name = try allocator.dupe(u8, table.name);
+            errdefer allocator.free(name);
+
+            var alias: ?[]const u8 = null;
+            errdefer if (alias) |owned| allocator.free(owned);
+            if (table.alias) |table_alias| {
+                alias = try allocator.dupe(u8, table_alias);
+            }
+
+            break :blk .{ .base_table = .{
+                .name = name,
+                .alias = alias,
+            } };
+        },
+        .derived_table => |derived| blk: {
+            const query = try allocator.create(ast.SelectStatement);
+            errdefer allocator.destroy(query);
+            query.* = try materializeSelectStatement(allocator, derived.query.*, env);
+            errdefer query.deinit(allocator);
+
+            break :blk .{ .derived_table = .{
+                .query = query,
+                .alias = try allocator.dupe(u8, derived.alias),
+            } };
+        },
+        .join => |join| blk: {
+            const left = try allocator.create(ast.RowSource);
+            errdefer allocator.destroy(left);
+            left.* = try materializeRowSource(allocator, join.left.*, env);
+            errdefer left.deinit(allocator);
+
+            const right = try allocator.create(ast.RowSource);
+            errdefer allocator.destroy(right);
+            right.* = try materializeRowSource(allocator, join.right.*, env);
+            errdefer right.deinit(allocator);
+
+            var on: ?ast.Expression = null;
+            errdefer if (on) |condition| condition.deinit(allocator);
+            if (join.on) |condition| {
+                on = try materializeProcedureExpression(allocator, condition, env);
+            }
+
+            break :blk .{ .join = .{
+                .left = left,
+                .join_type = join.join_type,
+                .right = right,
+                .on = on,
+            } };
+        },
+    };
+}
+
+fn materializeProcedureExpression(
+    allocator: std.mem.Allocator,
+    expression: ast.Expression,
+    env: *const ProcedureEnv,
+) ProcedureMaterializeError!ast.Expression {
+    return switch (expression) {
+        .identifier => |identifier| if (env.get(identifier)) |runtime_value|
+            .{ .literal = try literalFromValue(allocator, runtime_value) }
+        else
+            .{ .identifier = try allocator.dupe(u8, identifier) },
+        .literal => |literal| .{ .literal = try cloneLiteralForProcedure(allocator, literal) },
+        .star => .star,
+        .function_call => |call| blk: {
+            const name = try allocator.dupe(u8, call.name);
+            errdefer allocator.free(name);
+
+            var args = try allocator.alloc(ast.Expression, call.args.len);
+            errdefer allocator.free(args);
+            var count: usize = 0;
+            errdefer {
+                for (args[0..count]) |arg| arg.deinit(allocator);
+            }
+            for (call.args, 0..) |arg, index| {
+                args[index] = try materializeProcedureExpression(allocator, arg, env);
+                count += 1;
+            }
+
+            break :blk .{
+                .function_call = .{
+                    .name = name,
+                    .args = args,
+                },
+            };
+        },
+        .binary => |binary| blk: {
+            const left = try allocator.create(ast.Expression);
+            errdefer allocator.destroy(left);
+            left.* = try materializeProcedureExpression(allocator, binary.left.*, env);
+            errdefer left.deinit(allocator);
+
+            const right = try allocator.create(ast.Expression);
+            errdefer allocator.destroy(right);
+            right.* = try materializeProcedureExpression(allocator, binary.right.*, env);
+
+            break :blk .{
+                .binary = .{
+                    .left = left,
+                    .operator = binary.operator,
+                    .right = right,
+                },
+            };
+        },
+    };
+}
+
+fn literalFromValue(allocator: std.mem.Allocator, runtime_value: value.Value) !ast.Literal {
+    return switch (runtime_value) {
+        .null => .null,
+        .integer => |integer| .{ .integer = integer },
+        .float => |float| .{ .float = float },
+        .boolean => |boolean| .{ .boolean = boolean },
+        .text => |text| .{ .string = try allocator.dupe(u8, text) },
+        .blob => error.UnsupportedProcedure,
+        .vector => |vector| blk: {
+            var components = try allocator.alloc(f64, vector.values.len);
+            for (vector.values, 0..) |component, index| {
+                components[index] = component;
+            }
+            break :blk .{ .vector = components };
+        },
+    };
+}
+
+fn cloneLiteralForProcedure(allocator: std.mem.Allocator, literal: ast.Literal) !ast.Literal {
+    return switch (literal) {
+        .null => .null,
+        .integer => |integer| .{ .integer = integer },
+        .float => |float| .{ .float = float },
+        .boolean => |boolean| .{ .boolean = boolean },
+        .string => |string| .{ .string = try allocator.dupe(u8, string) },
+        .vector => |components| .{ .vector = try allocator.dupe(f64, components) },
+    };
+}
+
+fn evalProcedureExpression(
+    allocator: std.mem.Allocator,
+    env: *const ProcedureEnv,
+    expression: ast.Expression,
+) anyerror!value.Value {
+    return switch (expression) {
+        .literal => |literal| try valueFromLiteral(allocator, literal),
+        .identifier => |identifier| blk: {
+            const runtime_value = env.get(identifier) orelse return error.UnknownObject;
+            break :blk try runtime_value.clone(allocator);
+        },
+        .binary => |binary| try evalProcedureBinary(allocator, env, binary),
+        .function_call => error.UnsupportedExpression,
+        .star => error.UnsupportedExpression,
+    };
+}
+
+fn evalProcedureBinary(
+    allocator: std.mem.Allocator,
+    env: *const ProcedureEnv,
+    binary: ast.BinaryExpression,
+) anyerror!value.Value {
+    var left = try evalProcedureExpression(allocator, env, binary.left.*);
+    defer left.deinit(allocator);
+    var right = try evalProcedureExpression(allocator, env, binary.right.*);
+    defer right.deinit(allocator);
+
+    return evalBinaryValues(left, right, binary.operator);
+}
 
 const TableTransaction = struct {
     table_name: []u8,
@@ -812,21 +1386,63 @@ fn evalBinary(
     var right = try evalExpression(allocator, table, row, binary.right.*);
     defer right.deinit(allocator);
 
-    if (binary.operator == .and_op) {
-        if (left != .boolean or right != .boolean) return error.TypeMismatch;
-        return .{ .boolean = left.boolean and right.boolean };
-    }
+    return evalBinaryValues(left, right, binary.operator);
+}
 
-    const comparison = try compareValues(left, right);
-    return .{ .boolean = switch (binary.operator) {
-        .equal => comparison == 0,
-        .not_equal => comparison != 0,
-        .less_than => comparison < 0,
-        .less_equal => comparison <= 0,
-        .greater_than => comparison > 0,
-        .greater_equal => comparison >= 0,
-        .and_op => unreachable,
-    } };
+fn evalBinaryValues(left: value.Value, right: value.Value, operator: ast.BinaryOperator) !value.Value {
+    return switch (operator) {
+        .add => try evalNumericBinary(left, right, .add),
+        .subtract => try evalNumericBinary(left, right, .subtract),
+        .and_op => blk: {
+            if (left != .boolean or right != .boolean) return error.TypeMismatch;
+            break :blk .{ .boolean = left.boolean and right.boolean };
+        },
+        else => blk: {
+            const comparison = try compareValues(left, right);
+            break :blk .{ .boolean = switch (operator) {
+                .equal => comparison == 0,
+                .not_equal => comparison != 0,
+                .less_than => comparison < 0,
+                .less_equal => comparison <= 0,
+                .greater_than => comparison > 0,
+                .greater_equal => comparison >= 0,
+                .add, .subtract, .and_op => unreachable,
+            } };
+        },
+    };
+}
+
+const NumericOperator = enum {
+    add,
+    subtract,
+};
+
+fn evalNumericBinary(left: value.Value, right: value.Value, operator: NumericOperator) !value.Value {
+    return switch (left) {
+        .integer => |left_integer| switch (right) {
+            .integer => |right_integer| .{ .integer = switch (operator) {
+                .add => left_integer + right_integer,
+                .subtract => left_integer - right_integer,
+            } },
+            .float => |right_float| .{ .float = switch (operator) {
+                .add => @as(f64, @floatFromInt(left_integer)) + right_float,
+                .subtract => @as(f64, @floatFromInt(left_integer)) - right_float,
+            } },
+            else => error.TypeMismatch,
+        },
+        .float => |left_float| switch (right) {
+            .integer => |right_integer| .{ .float = switch (operator) {
+                .add => left_float + @as(f64, @floatFromInt(right_integer)),
+                .subtract => left_float - @as(f64, @floatFromInt(right_integer)),
+            } },
+            .float => |right_float| .{ .float = switch (operator) {
+                .add => left_float + right_float,
+                .subtract => left_float - right_float,
+            } },
+            else => error.TypeMismatch,
+        },
+        else => error.TypeMismatch,
+    };
 }
 
 fn valueFromLiteral(allocator: std.mem.Allocator, literal: ast.Literal) !value.Value {
@@ -1199,6 +1815,58 @@ test "executor registers and calls constrained procedures" {
     try std.testing.expectError(error.UnknownObject, db.executeSql(&session, "CALL remember();"));
 }
 
+test "executor runs procedure parameters variables control flow and transaction visibility" {
+    const allocator = std.testing.allocator;
+
+    var db = Database.init(allocator);
+    defer db.deinit();
+    var writer = Session.init(allocator);
+    defer writer.deinit();
+    var reader = Session.init(allocator);
+    defer reader.deinit();
+
+    var result = try db.executeSql(&writer, "CREATE TABLE memories (id INTEGER, body TEXT);");
+    result.deinit(allocator);
+    result = try db.executeSql(&writer,
+        \\CREATE PROCEDURE remember(IN p_id INT, IN p_body TEXT)
+        \\BEGIN
+        \\  DECLARE attempts INT DEFAULT 0;
+        \\  IF p_id > 0 THEN
+        \\    WHILE attempts < 1 DO
+        \\      INSERT INTO memories (id, body) VALUES (p_id, p_body);
+        \\      SET attempts = attempts + 1;
+        \\    END WHILE;
+        \\  END IF;
+        \\END;
+    );
+    result.deinit(allocator);
+
+    result = try db.executeSql(&writer, "BEGIN;");
+    result.deinit(allocator);
+    result = try db.executeSql(&writer, "CALL remember(1, 'from proc');");
+    try std.testing.expectEqual(@as(usize, 1), result.mutation_count);
+    result.deinit(allocator);
+
+    result = try db.executeSql(&writer, "SELECT id, body FROM memories;");
+    try std.testing.expectEqual(@as(usize, 1), result.result_set.rows.len);
+    try std.testing.expectEqual(@as(i64, 1), result.result_set.rows[0].values[0].integer);
+    try std.testing.expectEqualStrings("from proc", result.result_set.rows[0].values[1].text);
+    result.deinit(allocator);
+
+    result = try db.executeSql(&reader, "SELECT id, body FROM memories;");
+    try std.testing.expectEqual(@as(usize, 0), result.result_set.rows.len);
+    result.deinit(allocator);
+
+    result = try db.executeSql(&writer, "COMMIT;");
+    result.deinit(allocator);
+
+    result = try db.executeSql(&reader, "SELECT id, body FROM memories;");
+    defer result.deinit(allocator);
+    try std.testing.expectEqual(@as(usize, 1), result.result_set.rows.len);
+    try std.testing.expectEqual(@as(i64, 1), result.result_set.rows[0].values[0].integer);
+    try std.testing.expectEqualStrings("from proc", result.result_set.rows[0].values[1].text);
+}
+
 test "executor returns typed diagnostics for unsupported and invalid operations" {
     const allocator = std.testing.allocator;
 
@@ -1224,7 +1892,11 @@ test "executor returns typed diagnostics for unsupported and invalid operations"
     );
     try std.testing.expectError(
         error.UnsupportedProcedure,
-        db.executeSql(&session, "CREATE PROCEDURE bad() BEGIN IF TRUE THEN SELECT * FROM memories; END IF; END;"),
+        db.executeSql(&session, "CREATE PROCEDURE bad_cursor() BEGIN DECLARE cur CURSOR FOR SELECT * FROM memories; END;"),
+    );
+    try std.testing.expectError(
+        error.UnsupportedProcedure,
+        db.executeSql(&session, "CREATE PROCEDURE bad_dynamic() BEGIN PREPARE stmt FROM 'SELECT 1'; END;"),
     );
     try std.testing.expectEqual(DiagnosticKind.unknown_column, diagnosticFromError(error.UnknownColumn).?);
 }

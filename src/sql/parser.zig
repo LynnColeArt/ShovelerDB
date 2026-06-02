@@ -45,6 +45,18 @@ pub const ParseResult = union(enum) {
     }
 };
 
+pub const ExpressionResult = union(enum) {
+    expression: ast.Expression,
+    diagnostic: Diagnostic,
+
+    pub fn deinit(self: ExpressionResult, allocator: std.mem.Allocator) void {
+        switch (self) {
+            .expression => |expression| expression.deinit(allocator),
+            .diagnostic => {},
+        }
+    }
+};
+
 pub fn parse(allocator: std.mem.Allocator, sql: []const u8) !ParseResult {
     if (policy.firstViolation(sql)) |violation| {
         return .{
@@ -74,6 +86,24 @@ pub fn parse(allocator: std.mem.Allocator, sql: []const u8) !ParseResult {
     }
 
     return .{ .statement = statement };
+}
+
+pub fn parseExpressionOnly(allocator: std.mem.Allocator, sql: []const u8) !ExpressionResult {
+    var parser = try Parser.init(allocator, sql);
+    defer parser.deinit();
+
+    const expression = parser.parseExpression() catch |err| switch (err) {
+        error.OutOfMemory => return error.OutOfMemory,
+        error.ParseFailed => return .{ .diagnostic = parser.diagnostic },
+    };
+
+    if (parser.peek()) |token| {
+        var owned_expression = expression;
+        owned_expression.deinit(allocator);
+        return .{ .diagnostic = parser.unexpected(token, "end of expression") };
+    }
+
+    return .{ .expression = expression };
 }
 
 const Parser = struct {
@@ -743,11 +773,38 @@ const Parser = struct {
     fn parseCreateProcedure(self: *Parser) ParseError!ast.ProcedureStatement {
         const name = try self.expectIdentifierOwned("procedure name");
         errdefer self.allocator.free(name);
+
+        var params: std.ArrayList(ast.ProcedureParam) = .empty;
+        errdefer {
+            for (params.items) |param| param.deinit(self.allocator);
+            params.deinit(self.allocator);
+        }
         if (self.matchSymbol("(")) {
-            self.skipBalanced(")") catch |err| switch (err) {
-                error.OutOfMemory => return error.OutOfMemory,
-                error.ParseFailed => return error.ParseFailed,
-            };
+            while (!self.matchSymbol(")")) {
+                const mode: ast.ProcedureParamMode = blk: {
+                    if (self.matchKeyword("IN")) break :blk .in;
+                    if (self.peek()) |token| {
+                        if (token.eqlIgnoreCase("OUT") or token.eqlIgnoreCase("INOUT")) {
+                            return self.failToken(token, .unsupported_syntax, "IN parameter");
+                        }
+                    }
+                    break :blk .in;
+                };
+
+                var param_name: ?[]const u8 = try self.expectIdentifierOwned("parameter name");
+                errdefer if (param_name) |owned| self.allocator.free(owned);
+                const column_type = try self.parseColumnType();
+                try params.append(self.allocator, .{
+                    .name = param_name.?,
+                    .column_type = column_type,
+                    .mode = mode,
+                });
+                param_name = null;
+
+                if (self.matchSymbol(",")) continue;
+                try self.expectSymbol(")");
+                break;
+            }
         }
 
         const body_start = if (self.peek()) |token| token.offset else self.sql.len;
@@ -768,9 +825,17 @@ const Parser = struct {
             return error.ParseFailed;
         }
 
+        const param_slice = try params.toOwnedSlice(self.allocator);
+        errdefer {
+            for (param_slice) |param| param.deinit(self.allocator);
+            self.allocator.free(param_slice);
+        }
+        const body_sql = try self.allocator.dupe(u8, std.mem.trim(u8, self.sql[body_start..body_end], &std.ascii.whitespace));
+
         return .{
             .name = name,
-            .body_sql = try self.allocator.dupe(u8, std.mem.trim(u8, self.sql[body_start..body_end], &std.ascii.whitespace)),
+            .params = param_slice,
+            .body_sql = body_sql,
         };
     }
 
@@ -813,13 +878,27 @@ const Parser = struct {
     }
 
     fn parseComparisonExpression(self: *Parser) ParseError!ast.Expression {
-        var left = try self.parsePrimary();
+        var left = try self.parseAdditiveExpression();
 
         if (isComparisonStart(self.peek())) {
-            left = try self.makeBinary(left, try self.parseComparisonOperator(), try self.parsePrimary());
+            left = try self.makeBinary(left, try self.parseComparisonOperator(), try self.parseAdditiveExpression());
         }
 
         return left;
+    }
+
+    fn parseAdditiveExpression(self: *Parser) ParseError!ast.Expression {
+        var left = try self.parsePrimary();
+
+        while (true) {
+            const operator: ast.BinaryOperator = if (self.matchSymbol("+"))
+                .add
+            else if (self.matchSymbol("-"))
+                .subtract
+            else
+                return left;
+            left = try self.makeBinary(left, operator, try self.parsePrimary());
+        }
     }
 
     fn makeBinary(self: *Parser, left: ast.Expression, operator: ast.BinaryOperator, right: ast.Expression) ParseError!ast.Expression {
@@ -1377,13 +1456,25 @@ test "parser parses view procedure and call statements" {
     defer view.deinit(allocator);
     try std.testing.expectEqualStrings("recent", view.statement.create_view.name);
 
-    const procedure = try parse(allocator, "CREATE PROCEDURE remember() BEGIN INSERT INTO memories VALUES (1); END;");
+    const procedure = try parse(
+        allocator,
+        "CREATE PROCEDURE remember(IN p_id INT, IN p_body TEXT) BEGIN INSERT INTO memories (id, body) VALUES (p_id, p_body); END;",
+    );
     defer procedure.deinit(allocator);
     try std.testing.expectEqualStrings("remember", procedure.statement.create_procedure.name);
+    try std.testing.expectEqual(@as(usize, 2), procedure.statement.create_procedure.params.len);
+    try std.testing.expectEqualStrings("p_id", procedure.statement.create_procedure.params[0].name);
+    try std.testing.expectEqual(ast.ColumnType.integer, procedure.statement.create_procedure.params[0].column_type);
+    try std.testing.expectEqualStrings("p_body", procedure.statement.create_procedure.params[1].name);
+    try std.testing.expectEqual(ast.ColumnType.text, procedure.statement.create_procedure.params[1].column_type);
 
     const call = try parse(allocator, "CALL remember(1, 'hi');");
     defer call.deinit(allocator);
     try std.testing.expectEqual(@as(usize, 2), call.statement.call.args.len);
+
+    const expression = try parseExpressionOnly(allocator, "attempts + 1");
+    defer expression.deinit(allocator);
+    try std.testing.expectEqual(ast.BinaryOperator.add, expression.expression.binary.operator);
 }
 
 test "parser accepts negative scalar and vector numbers" {

@@ -17,7 +17,8 @@ and vector workloads.
 - single-table scans with `WHERE`, `ORDER BY`, and `LIMIT`
 - views over supported `SELECT` statements, with current executor support
   strongest for simple delegation
-- constrained stored procedures with a single supported SQL statement body
+- constrained stored procedures with `IN` parameters, `DECLARE`, `SET`, `IF`,
+  bounded `WHILE`, and supported SQL statements inside `BEGIN ... END`
 - CLI parse, execute, analyze, classify, and benchmark commands
 
 ## Active Syntax-Completion Mission
@@ -33,7 +34,6 @@ these design promises into tested executable behavior or explicit deferrals:
 - inner/cross/left joins
 - aggregate functions, `GROUP BY`, and `HAVING`
 - richer view expansion
-- procedure parameters, variables, `IF`, `WHILE`, and multi-statement bodies
 - vector indexes
 - MySQL-compatible DDL metadata such as `IF EXISTS`, `IF NOT EXISTS`, defaults,
   nullability, primary keys, and auto-increment metadata

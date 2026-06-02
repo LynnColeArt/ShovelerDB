@@ -53,6 +53,8 @@ pub const Literal = union(enum) {
 };
 
 pub const BinaryOperator = enum {
+    add,
+    subtract,
     equal,
     not_equal,
     less_than,
@@ -316,12 +318,29 @@ pub const CreateViewStatement = struct {
     }
 };
 
+pub const ProcedureParamMode = enum {
+    in,
+};
+
+pub const ProcedureParam = struct {
+    name: []const u8,
+    column_type: ColumnType,
+    mode: ProcedureParamMode = .in,
+
+    pub fn deinit(self: ProcedureParam, allocator: std.mem.Allocator) void {
+        allocator.free(self.name);
+    }
+};
+
 pub const ProcedureStatement = struct {
     name: []const u8,
+    params: []ProcedureParam = &.{},
     body_sql: []const u8,
 
     pub fn deinit(self: ProcedureStatement, allocator: std.mem.Allocator) void {
         allocator.free(self.name);
+        for (self.params) |param| param.deinit(allocator);
+        allocator.free(self.params);
         allocator.free(self.body_sql);
     }
 };

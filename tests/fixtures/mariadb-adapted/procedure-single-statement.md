@@ -2,8 +2,9 @@
 
 - Source path: `references/mariadb/mysql-test/main/sp.test`
 - Source intent: validate stored procedure creation, invocation, and removal.
-- ShovelerDB adaptation: restrict the procedure body to one supported SQL
-  statement inside `BEGIN ... END`.
+- ShovelerDB adaptation: keep this fixture as the minimal procedure lifecycle
+  smoke; richer parameters, variables, and control flow are covered by the
+  procedure acceptance tests.
 - Native smoke:
 
 ```sql
@@ -16,6 +17,5 @@ SELECT body FROM memories;
 DROP PROCEDURE remember;
 ```
 
-- Removed MariaDB behavior: delimiter commands, control flow, cursors,
-  handlers, variables, OUT parameters, and multiple statements per procedure
-  body.
+- Removed MariaDB behavior: delimiter commands, cursors, handlers, OUT
+  parameters, dynamic SQL, and other server-oriented stored-program surfaces.

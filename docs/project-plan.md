@@ -146,9 +146,9 @@ Exit criteria:
 
 ## Phase 7: Views and Procedures
 
-Status: partially complete; simple views and single-statement procedures work,
-while richer view expansion and procedure control flow are in the active
-syntax-completion mission.
+Status: partially complete; simple views and constrained procedure control flow
+work, while richer view expansion and unsupported stored-program surfaces remain
+classified through the active syntax-completion mission.
 
 Goal: support reusable schema logic without reintroducing server baggage.
 

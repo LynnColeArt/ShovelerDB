@@ -3,6 +3,7 @@ const std = @import("std");
 pub const sql = struct {
     pub const ast = @import("sql/ast.zig");
     pub const parser = @import("sql/parser.zig");
+    pub const procedure_body = @import("sql/procedure_body.zig");
     pub const tokenizer = @import("sql/tokenizer.zig");
     pub const policy = @import("sql/policy.zig");
 };
@@ -66,6 +67,7 @@ test "project policy is intentionally smaller than MariaDB" {
 test {
     std.testing.refAllDecls(sql.ast);
     std.testing.refAllDecls(sql.parser);
+    std.testing.refAllDecls(sql.procedure_body);
     std.testing.refAllDecls(sql.tokenizer);
     std.testing.refAllDecls(sql.policy);
     std.testing.refAllDecls(db.value);

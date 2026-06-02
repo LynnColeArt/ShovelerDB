@@ -728,16 +728,7 @@ fn evalGroupedBinary(
         return .{ .boolean = left.boolean and right.boolean };
     }
 
-    const comparison = try compareValues(left, right);
-    return .{ .boolean = switch (binary.operator) {
-        .equal => comparison == 0,
-        .not_equal => comparison != 0,
-        .less_than => comparison < 0,
-        .less_equal => comparison <= 0,
-        .greater_than => comparison > 0,
-        .greater_equal => comparison >= 0,
-        .and_op => unreachable,
-    } };
+    return evalBinaryValues(left, right, binary.operator);
 }
 
 fn evalRepresentativeExpression(
@@ -1136,21 +1127,63 @@ fn evalBinary(
     var right = try evalExpression(allocator, row_set, row, binary.right.*);
     defer right.deinit(allocator);
 
-    if (binary.operator == .and_op) {
-        if (left != .boolean or right != .boolean) return error.TypeMismatch;
-        return .{ .boolean = left.boolean and right.boolean };
-    }
+    return evalBinaryValues(left, right, binary.operator);
+}
 
-    const comparison = try compareValues(left, right);
-    return .{ .boolean = switch (binary.operator) {
-        .equal => comparison == 0,
-        .not_equal => comparison != 0,
-        .less_than => comparison < 0,
-        .less_equal => comparison <= 0,
-        .greater_than => comparison > 0,
-        .greater_equal => comparison >= 0,
-        .and_op => unreachable,
-    } };
+fn evalBinaryValues(left: value.Value, right: value.Value, operator: ast.BinaryOperator) !value.Value {
+    return switch (operator) {
+        .add => try evalNumericBinary(left, right, .add),
+        .subtract => try evalNumericBinary(left, right, .subtract),
+        .and_op => blk: {
+            if (left != .boolean or right != .boolean) return error.TypeMismatch;
+            break :blk .{ .boolean = left.boolean and right.boolean };
+        },
+        else => blk: {
+            const comparison = try compareValues(left, right);
+            break :blk .{ .boolean = switch (operator) {
+                .equal => comparison == 0,
+                .not_equal => comparison != 0,
+                .less_than => comparison < 0,
+                .less_equal => comparison <= 0,
+                .greater_than => comparison > 0,
+                .greater_equal => comparison >= 0,
+                .add, .subtract, .and_op => unreachable,
+            } };
+        },
+    };
+}
+
+const NumericOperator = enum {
+    add,
+    subtract,
+};
+
+fn evalNumericBinary(left: value.Value, right: value.Value, operator: NumericOperator) !value.Value {
+    return switch (left) {
+        .integer => |left_integer| switch (right) {
+            .integer => |right_integer| .{ .integer = switch (operator) {
+                .add => left_integer + right_integer,
+                .subtract => left_integer - right_integer,
+            } },
+            .float => |right_float| .{ .float = switch (operator) {
+                .add => @as(f64, @floatFromInt(left_integer)) + right_float,
+                .subtract => @as(f64, @floatFromInt(left_integer)) - right_float,
+            } },
+            else => error.TypeMismatch,
+        },
+        .float => |left_float| switch (right) {
+            .integer => |right_integer| .{ .float = switch (operator) {
+                .add => left_float + @as(f64, @floatFromInt(right_integer)),
+                .subtract => left_float - @as(f64, @floatFromInt(right_integer)),
+            } },
+            .float => |right_float| .{ .float = switch (operator) {
+                .add => left_float + right_float,
+                .subtract => left_float - right_float,
+            } },
+            else => error.TypeMismatch,
+        },
+        else => error.TypeMismatch,
+    };
 }
 
 fn projectionItems(allocator: std.mem.Allocator, statement: ast.SelectStatement) ![]ProjectionItem {

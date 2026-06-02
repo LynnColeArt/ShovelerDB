@@ -51,6 +51,14 @@ pub fn build(b: *std.Build) void {
             .{ .name = "shovelerdb", .module = lib_module },
         },
     });
+    const procedure_integration_module = b.createModule(.{
+        .root_source_file = b.path("tests/integration/procedure_acceptance.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "shovelerdb", .module = lib_module },
+        },
+    });
 
     const exe = b.addExecutable(.{
         .name = "shoveler",
@@ -86,6 +94,9 @@ pub fn build(b: *std.Build) void {
     const ddl_integration_tests = b.addTest(.{
         .root_module = ddl_integration_module,
     });
+    const procedure_integration_tests = b.addTest(.{
+        .root_module = procedure_integration_module,
+    });
 
     const run_lib_tests = b.addRunArtifact(lib_tests);
     const run_exe_tests = b.addRunArtifact(exe_tests);
@@ -93,6 +104,7 @@ pub fn build(b: *std.Build) void {
     const run_query_source_integration_tests = b.addRunArtifact(query_source_integration_tests);
     const run_aggregate_integration_tests = b.addRunArtifact(aggregate_integration_tests);
     const run_ddl_integration_tests = b.addRunArtifact(ddl_integration_tests);
+    const run_procedure_integration_tests = b.addRunArtifact(procedure_integration_tests);
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_lib_tests.step);
     test_step.dependOn(&run_exe_tests.step);
@@ -100,4 +112,5 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_query_source_integration_tests.step);
     test_step.dependOn(&run_aggregate_integration_tests.step);
     test_step.dependOn(&run_ddl_integration_tests.step);
+    test_step.dependOn(&run_procedure_integration_tests.step);
 }

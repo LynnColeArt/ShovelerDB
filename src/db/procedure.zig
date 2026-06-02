@@ -1,4 +1,6 @@
 const std = @import("std");
+const ast = @import("../sql/ast.zig");
+const procedure_body = @import("../sql/procedure_body.zig");
 
 pub const ProcedureError = error{
     DuplicateObject,
@@ -23,11 +25,14 @@ pub fn diagnosticFromError(err: anyerror) ?DiagnosticKind {
 
 pub const StoredProcedure = struct {
     name: []u8,
-    body_sql: []u8,
+    params: []ast.ProcedureParam,
+    body: procedure_body.Body,
 
     pub fn deinit(self: *StoredProcedure, allocator: std.mem.Allocator) void {
         allocator.free(self.name);
-        allocator.free(self.body_sql);
+        for (self.params) |param| param.deinit(allocator);
+        allocator.free(self.params);
+        self.body.deinit(allocator);
         self.* = undefined;
     }
 };
@@ -46,18 +51,32 @@ pub const ProcedureRegistry = struct {
         self.* = undefined;
     }
 
-    pub fn create(self: *ProcedureRegistry, name: []const u8, body_sql: []const u8) !void {
+    pub fn create(
+        self: *ProcedureRegistry,
+        name: []const u8,
+        params: []const ast.ProcedureParam,
+        body_sql: []const u8,
+    ) !void {
         if (self.findIndex(name) != null) return error.DuplicateObject;
 
-        const inner = supportedSingleStatementBody(body_sql) orelse return error.UnsupportedProcedure;
         var stored = StoredProcedure{
             .name = try self.allocator.dupe(u8, name),
-            .body_sql = undefined,
+            .params = &.{},
+            .body = .{},
         };
         errdefer self.allocator.free(stored.name);
 
-        stored.body_sql = try self.allocator.dupe(u8, inner);
-        errdefer self.allocator.free(stored.body_sql);
+        stored.params = try cloneParams(self.allocator, params);
+        errdefer {
+            for (stored.params) |param| param.deinit(self.allocator);
+            self.allocator.free(stored.params);
+        }
+
+        stored.body = procedure_body.parse(self.allocator, body_sql) catch |err| switch (err) {
+            error.OutOfMemory => return error.OutOfMemory,
+            else => return error.UnsupportedProcedure,
+        };
+        errdefer stored.body.deinit(self.allocator);
 
         try self.procedures.append(self.allocator, stored);
     }
@@ -81,71 +100,25 @@ pub const ProcedureRegistry = struct {
     }
 };
 
-fn supportedSingleStatementBody(body_sql: []const u8) ?[]const u8 {
-    const trimmed = trim(body_sql);
-    if (!startsWithWord(trimmed, "BEGIN")) return null;
-    if (!endsWithWord(trimmed, "END")) return null;
-    if (containsForbiddenControlToken(trimmed)) return null;
+fn cloneParams(allocator: std.mem.Allocator, params: []const ast.ProcedureParam) ![]ast.ProcedureParam {
+    var cloned = try allocator.alloc(ast.ProcedureParam, params.len);
+    errdefer allocator.free(cloned);
 
-    var inner = trim(trimmed["BEGIN".len .. trimmed.len - "END".len]);
-    if (inner.len == 0) return null;
-    if (std.mem.endsWith(u8, inner, ";")) {
-        inner = trim(inner[0 .. inner.len - 1]);
+    var count: usize = 0;
+    errdefer {
+        for (cloned[0..count]) |param| param.deinit(allocator);
     }
-    if (inner.len == 0) return null;
-    if (std.mem.indexOfScalar(u8, inner, ';') != null) return null;
-    return inner;
-}
 
-fn containsForbiddenControlToken(input: []const u8) bool {
-    const forbidden = [_][]const u8{
-        "DECLARE",
-        "IF",
-        "LOOP",
-        "WHILE",
-        "REPEAT",
-        "LEAVE",
-        "SET",
-    };
-
-    var index: usize = 0;
-    while (index < input.len) {
-        while (index < input.len and !isWordStart(input[index])) index += 1;
-        const start = index;
-        while (index < input.len and isWordContinue(input[index])) index += 1;
-        if (start == index) continue;
-
-        const word = input[start..index];
-        for (forbidden) |candidate| {
-            if (std.ascii.eqlIgnoreCase(word, candidate)) return true;
-        }
+    for (params, 0..) |param, index| {
+        cloned[index] = .{
+            .name = try allocator.dupe(u8, param.name),
+            .column_type = param.column_type,
+            .mode = param.mode,
+        };
+        count += 1;
     }
-    return false;
-}
 
-fn startsWithWord(input: []const u8, word: []const u8) bool {
-    if (input.len < word.len) return false;
-    if (!std.ascii.eqlIgnoreCase(input[0..word.len], word)) return false;
-    return input.len == word.len or !isWordContinue(input[word.len]);
-}
-
-fn endsWithWord(input: []const u8, word: []const u8) bool {
-    if (input.len < word.len) return false;
-    const start = input.len - word.len;
-    if (!std.ascii.eqlIgnoreCase(input[start..], word)) return false;
-    return start == 0 or !isWordContinue(input[start - 1]);
-}
-
-fn isWordStart(c: u8) bool {
-    return std.ascii.isAlphabetic(c) or c == '_';
-}
-
-fn isWordContinue(c: u8) bool {
-    return std.ascii.isAlphanumeric(c) or c == '_';
-}
-
-fn trim(input: []const u8) []const u8 {
-    return std.mem.trim(u8, input, &std.ascii.whitespace);
+    return cloned;
 }
 
 test "procedure registry stores a constrained single statement body" {
@@ -154,15 +127,16 @@ test "procedure registry stores a constrained single statement body" {
     var registry = ProcedureRegistry.init(allocator);
     defer registry.deinit();
 
-    try registry.create("remember", "BEGIN INSERT INTO memories VALUES (1, 'hi'); END");
-    try std.testing.expectEqualStrings(
-        "INSERT INTO memories VALUES (1, 'hi')",
-        registry.get("REMEMBER").?.body_sql,
+    try registry.create("remember", &.{}, "BEGIN INSERT INTO memories VALUES (1, 'hi'); END");
+    try std.testing.expectEqual(@as(usize, 1), registry.get("REMEMBER").?.body.statements.len);
+    try std.testing.expectEqual(
+        @as(std.meta.Tag(ast.Statement), .insert),
+        std.meta.activeTag(registry.get("REMEMBER").?.body.statements[0].sql.statement),
     );
 
     try std.testing.expectError(
         error.DuplicateObject,
-        registry.create("remember", "BEGIN SELECT * FROM memories; END"),
+        registry.create("remember", &.{}, "BEGIN SELECT * FROM memories; END"),
     );
 
     try registry.drop("remember");
@@ -170,7 +144,27 @@ test "procedure registry stores a constrained single statement body" {
     try std.testing.expectError(error.UnknownObject, registry.drop("remember"));
 }
 
-test "procedure registry rejects unsupported control flow and multi statement bodies" {
+test "procedure registry stores parameters and parsed multi statement bodies" {
+    const allocator = std.testing.allocator;
+
+    var registry = ProcedureRegistry.init(allocator);
+    defer registry.deinit();
+
+    const params = [_]ast.ProcedureParam{
+        .{ .name = "p_id", .column_type = .integer },
+        .{ .name = "p_body", .column_type = .text },
+    };
+
+    try registry.create(
+        "remember",
+        &params,
+        "BEGIN DECLARE attempts INT DEFAULT 0; SET attempts = attempts + 1; INSERT INTO memories (id, body) VALUES (p_id, p_body); END",
+    );
+    try std.testing.expectEqual(@as(usize, 2), registry.get("remember").?.params.len);
+    try std.testing.expectEqual(@as(usize, 3), registry.get("remember").?.body.statements.len);
+}
+
+test "procedure registry rejects unsupported stored-program features" {
     const allocator = std.testing.allocator;
 
     var registry = ProcedureRegistry.init(allocator);
@@ -178,14 +172,10 @@ test "procedure registry rejects unsupported control flow and multi statement bo
 
     try std.testing.expectError(
         error.UnsupportedProcedure,
-        registry.create("branchy", "BEGIN IF TRUE THEN SELECT 1; END IF; END"),
+        registry.create("cursor_proc", &.{}, "BEGIN DECLARE cur CURSOR FOR SELECT * FROM memories; END"),
     );
     try std.testing.expectError(
         error.UnsupportedProcedure,
-        registry.create("multi", "BEGIN SELECT 1; SELECT 2; END"),
-    );
-    try std.testing.expectError(
-        error.UnsupportedProcedure,
-        registry.create("bare", "SELECT 1"),
+        registry.create("bare", &.{}, "SELECT 1"),
     );
 }
