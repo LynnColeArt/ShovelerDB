@@ -1,4 +1,5 @@
 const std = @import("std");
+const ddl = @import("ddl.zig");
 const value = @import("value.zig");
 
 pub const CatalogError = error{
@@ -82,6 +83,8 @@ pub const ColumnSpec = struct {
     column_type: ColumnType,
     nullable: bool = true,
     default_value: ?value.Value = null,
+    primary_key: bool = false,
+    auto_increment: bool = false,
 };
 
 pub const ColumnDef = struct {
@@ -89,6 +92,8 @@ pub const ColumnDef = struct {
     column_type: ColumnType,
     nullable: bool = true,
     default_value: ?value.Value = null,
+    primary_key: bool = false,
+    auto_increment: bool = false,
 
     pub fn init(allocator: std.mem.Allocator, spec: ColumnSpec) !ColumnDef {
         try spec.column_type.validate();
@@ -99,7 +104,7 @@ pub const ColumnDef = struct {
         var default_value: ?value.Value = null;
         if (spec.default_value) |default| {
             if (default == .null) {
-                if (!spec.nullable) return error.TypeMismatch;
+                if (!effectiveNullable(spec)) return error.TypeMismatch;
             } else {
                 try spec.column_type.acceptsValue(default);
             }
@@ -111,8 +116,10 @@ pub const ColumnDef = struct {
         return .{
             .name = name,
             .column_type = spec.column_type,
-            .nullable = spec.nullable,
+            .nullable = effectiveNullable(spec),
             .default_value = default_value,
+            .primary_key = spec.primary_key,
+            .auto_increment = spec.auto_increment,
         };
     }
 
@@ -132,17 +139,65 @@ pub const ColumnDef = struct {
     }
 };
 
+fn effectiveNullable(spec: ColumnSpec) bool {
+    return spec.nullable and !spec.primary_key and !spec.auto_increment;
+}
+
+pub const IndexSpec = struct {
+    name: ?[]const u8 = null,
+    columns: []const []const u8,
+    kind: ddl.IndexKind = .secondary,
+};
+
+pub const IndexDef = struct {
+    name: []u8,
+    columns: [][]u8,
+    kind: ddl.IndexKind = .secondary,
+
+    pub fn init(allocator: std.mem.Allocator, spec: IndexSpec) !IndexDef {
+        if (spec.columns.len == 0) return error.UnknownObject;
+
+        const index_name = spec.name orelse if (spec.kind == .primary) ddl.primary_index_name else spec.columns[0];
+        const name = try allocator.dupe(u8, index_name);
+        errdefer allocator.free(name);
+
+        var columns = try allocator.alloc([]u8, spec.columns.len);
+        errdefer allocator.free(columns);
+
+        var initialized: usize = 0;
+        errdefer {
+            for (columns[0..initialized]) |column| allocator.free(column);
+        }
+        for (spec.columns, 0..) |column, index| {
+            columns[index] = try allocator.dupe(u8, column);
+            initialized += 1;
+        }
+
+        return .{ .name = name, .columns = columns, .kind = spec.kind };
+    }
+
+    pub fn deinit(self: *IndexDef, allocator: std.mem.Allocator) void {
+        allocator.free(self.name);
+        for (self.columns) |column| allocator.free(column);
+        allocator.free(self.columns);
+        self.* = undefined;
+    }
+};
+
 pub const TableSpec = struct {
     name: []const u8,
     columns: []const ColumnSpec,
+    indexes: []const IndexSpec = &.{},
 };
 
 pub const TableDef = struct {
     name: []u8,
     columns: []ColumnDef,
+    indexes: []IndexDef = &.{},
 
     pub fn init(allocator: std.mem.Allocator, spec: TableSpec) !TableDef {
         try validateColumns(spec.columns);
+        try validateIndexes(spec.columns, spec.indexes);
 
         const name = try allocator.dupe(u8, spec.name);
         errdefer allocator.free(name);
@@ -160,13 +215,34 @@ pub const TableDef = struct {
             initialized += 1;
         }
 
-        return .{ .name = name, .columns = columns };
+        var indexes = try allocator.alloc(IndexDef, spec.indexes.len);
+        errdefer allocator.free(indexes);
+
+        var index_initialized: usize = 0;
+        errdefer {
+            for (indexes[0..index_initialized]) |*index_def| index_def.deinit(allocator);
+        }
+        for (spec.indexes, 0..) |index_spec, index| {
+            indexes[index] = try IndexDef.init(allocator, index_spec);
+            if (index_spec.kind == .primary) {
+                for (index_spec.columns) |column_name| {
+                    const column_index = columnIndexInSpecs(spec.columns, column_name) orelse return error.UnknownObject;
+                    columns[column_index].primary_key = true;
+                    columns[column_index].nullable = false;
+                }
+            }
+            index_initialized += 1;
+        }
+
+        return .{ .name = name, .columns = columns, .indexes = indexes };
     }
 
     pub fn deinit(self: *TableDef, allocator: std.mem.Allocator) void {
         allocator.free(self.name);
         for (self.columns) |*column_def| column_def.deinit(allocator);
         allocator.free(self.columns);
+        for (self.indexes) |*index_def| index_def.deinit(allocator);
+        allocator.free(self.indexes);
         self.* = undefined;
     }
 
@@ -365,14 +441,42 @@ pub const DatabaseCatalog = struct {
 fn validateColumns(columns: []const ColumnSpec) CatalogError!void {
     for (columns, 0..) |column, index| {
         try column.column_type.validate();
+        if (column.auto_increment and column.column_type != .integer) return error.TypeMismatch;
         for (columns[0..index]) |previous| {
             if (namesEqual(column.name, previous.name)) return error.DuplicateColumn;
         }
     }
 }
 
+fn validateIndexes(columns: []const ColumnSpec, indexes: []const IndexSpec) CatalogError!void {
+    var primary_count: usize = 0;
+    for (indexes, 0..) |index, offset| {
+        if (index.kind == .primary) primary_count += 1;
+        if (primary_count > 1) return error.DuplicateObject;
+
+        if (index.name) |name| {
+            for (indexes[0..offset]) |previous| {
+                if (previous.name) |previous_name| {
+                    if (namesEqual(name, previous_name)) return error.DuplicateObject;
+                }
+            }
+        }
+
+        for (index.columns) |column_name| {
+            if (columnIndexInSpecs(columns, column_name) == null) return error.UnknownObject;
+        }
+    }
+}
+
+fn columnIndexInSpecs(columns: []const ColumnSpec, name: []const u8) ?usize {
+    for (columns, 0..) |column, index| {
+        if (namesEqual(column.name, name)) return index;
+    }
+    return null;
+}
+
 fn namesEqual(a: []const u8, b: []const u8) bool {
-    return std.ascii.eqlIgnoreCase(a, b);
+    return ddl.namesEqual(a, b);
 }
 
 test "table metadata supports lookup, ordinals, and vector columns" {
@@ -417,6 +521,75 @@ test "table metadata rejects duplicate columns and invalid vector dimensions" {
         .name = "bad_vector",
         .columns = &.{
             .{ .name = "embedding", .column_type = .{ .vector = .{ .dimension = 0 } } },
+        },
+    }));
+}
+
+test "table metadata stores primary autoincrement defaults and indexes" {
+    const allocator = std.testing.allocator;
+
+    var default_body = try value.Value.initText(allocator, "seed");
+    defer default_body.deinit(allocator);
+
+    var table = try TableDef.init(allocator, .{
+        .name = "memories",
+        .columns = &.{
+            .{
+                .name = "id",
+                .column_type = .integer,
+                .nullable = true,
+                .primary_key = true,
+                .auto_increment = true,
+            },
+            .{ .name = "body", .column_type = .text, .nullable = false, .default_value = default_body },
+            .{ .name = "tag", .column_type = .text },
+        },
+        .indexes = &.{
+            .{ .columns = &.{"id"}, .kind = .primary },
+            .{ .name = "idx_tag", .columns = &.{"tag"} },
+        },
+    });
+    defer table.deinit(allocator);
+
+    try std.testing.expect(table.column("id").?.primary_key);
+    try std.testing.expect(table.column("id").?.auto_increment);
+    try std.testing.expect(!table.column("id").?.nullable);
+    try std.testing.expectEqualStrings("seed", table.column("body").?.default_value.?.text);
+    try std.testing.expectEqual(@as(usize, 2), table.indexes.len);
+    try std.testing.expectEqualStrings("PRIMARY", table.indexes[0].name);
+    try std.testing.expectEqualStrings("idx_tag", table.indexes[1].name);
+    try std.testing.expectEqualStrings("tag", table.indexes[1].columns[0]);
+}
+
+test "table metadata rejects invalid indexes and auto increment columns" {
+    const allocator = std.testing.allocator;
+
+    try std.testing.expectError(error.TypeMismatch, TableDef.init(allocator, .{
+        .name = "bad_auto",
+        .columns = &.{
+            .{ .name = "id", .column_type = .text, .auto_increment = true },
+        },
+    }));
+
+    try std.testing.expectError(error.UnknownObject, TableDef.init(allocator, .{
+        .name = "bad_index",
+        .columns = &.{
+            .{ .name = "id", .column_type = .integer },
+        },
+        .indexes = &.{
+            .{ .name = "idx_missing", .columns = &.{"missing"} },
+        },
+    }));
+
+    try std.testing.expectError(error.DuplicateObject, TableDef.init(allocator, .{
+        .name = "duplicate_primary",
+        .columns = &.{
+            .{ .name = "id", .column_type = .integer },
+            .{ .name = "other_id", .column_type = .integer },
+        },
+        .indexes = &.{
+            .{ .columns = &.{"id"}, .kind = .primary },
+            .{ .columns = &.{"other_id"}, .kind = .primary },
         },
     }));
 }

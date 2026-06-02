@@ -160,7 +160,7 @@ pub const Database = struct {
                 break :blk .ok;
             },
             .drop_table => |drop| blk: {
-                try self.dropTable(drop.name);
+                try self.dropTable(drop);
                 break :blk .ok;
             },
             .insert => |insert| .{ .mutation_count = try self.executeInsert(session, insert) },
@@ -190,20 +190,67 @@ pub const Database = struct {
     }
 
     fn createTable(self: *Database, statement: ast.CreateTableStatement) !void {
+        if (statement.if_not_exists and self.getTableState(statement.name) != null) return;
+
         var columns = try self.allocator.alloc(catalog.ColumnSpec, statement.columns.len);
-        defer self.allocator.free(columns);
+        var initialized_columns: usize = 0;
+        defer {
+            deinitColumnSpecDefaults(self.allocator, columns[0..initialized_columns]);
+            self.allocator.free(columns);
+        }
 
         for (statement.columns, 0..) |column, index| {
             columns[index] = .{
                 .name = column.name,
                 .column_type = try toCatalogColumnType(column.column_type),
-                .nullable = true,
+                .nullable = column.nullable,
+                .default_value = if (column.default_value) |default| try evalConstant(self.allocator, default) else null,
+                .primary_key = column.primary_key,
+                .auto_increment = column.auto_increment,
+            };
+            initialized_columns += 1;
+        }
+
+        const primary_column_count = countPrimaryColumns(statement.columns);
+        const index_count = statement.indexes.len + if (primary_column_count > 0) @as(usize, 1) else 0;
+        var indexes = try self.allocator.alloc(catalog.IndexSpec, index_count);
+        defer self.allocator.free(indexes);
+
+        var primary_columns: ?[][]const u8 = null;
+        defer if (primary_columns) |owned| self.allocator.free(owned);
+
+        var index_offset: usize = 0;
+        if (primary_column_count > 0) {
+            var primary = try self.allocator.alloc([]const u8, primary_column_count);
+            primary_columns = primary;
+
+            var count: usize = 0;
+            for (statement.columns) |column| {
+                if (!column.primary_key) continue;
+                primary[count] = column.name;
+                count += 1;
+            }
+
+            indexes[0] = .{
+                .name = null,
+                .columns = primary,
+                .kind = .primary,
+            };
+            index_offset = 1;
+        }
+
+        for (statement.indexes, 0..) |index, offset| {
+            indexes[index_offset + offset] = .{
+                .name = index.name,
+                .columns = index.columns,
+                .kind = if (index.primary) .primary else .secondary,
             };
         }
 
         try self.db_catalog.createTable(.{
             .name = statement.name,
             .columns = columns,
+            .indexes = indexes,
         });
         errdefer self.db_catalog.dropTable(statement.name) catch {};
 
@@ -218,9 +265,12 @@ pub const Database = struct {
         self.refreshTablePointers();
     }
 
-    fn dropTable(self: *Database, name: []const u8) !void {
-        const index = self.findTableStateIndex(name) orelse return error.UnknownObject;
-        try self.db_catalog.dropTable(name);
+    fn dropTable(self: *Database, statement: ast.NamedStatement) !void {
+        const index = self.findTableStateIndex(statement.name) orelse {
+            if (statement.if_exists) return;
+            return error.UnknownObject;
+        };
+        try self.db_catalog.dropTable(statement.name);
         var state = self.tables.orderedRemove(index);
         state.deinit(self.allocator);
         self.refreshTablePointers();
@@ -243,10 +293,10 @@ pub const Database = struct {
         const table_state = self.getTableState(statement.table_name) orelse return error.UnknownObject;
         const table = table_state.store.table;
 
-        const values = try self.rowValuesForInsert(table, statement);
+        var tx = try session.transactionFor(self, table_state);
+        const values = try self.rowValuesForInsert(table, statement, tx.next_id);
         defer deinitValueSlice(self.allocator, values);
 
-        var tx = try session.transactionFor(self, table_state);
         _ = try tx.insert(values);
         return 1;
     }
@@ -344,7 +394,12 @@ pub const Database = struct {
         };
     }
 
-    fn rowValuesForInsert(self: *Database, table: *const catalog.TableDef, statement: ast.InsertStatement) ![]value.Value {
+    fn rowValuesForInsert(
+        self: *Database,
+        table: *const catalog.TableDef,
+        statement: ast.InsertStatement,
+        next_row_id: row_store.RowId,
+    ) ![]value.Value {
         var initialized = try self.allocator.alloc(bool, table.columns.len);
         defer self.allocator.free(initialized);
         @memset(initialized, false);
@@ -371,7 +426,9 @@ pub const Database = struct {
 
         for (table.columns, 0..) |column, index| {
             if (!initialized[index]) {
-                if (column.default_value) |default| {
+                if (column.auto_increment) {
+                    values[index] = .{ .integer = @as(i64, @intCast(next_row_id)) };
+                } else if (column.default_value) |default| {
                     values[index] = try default.clone(self.allocator);
                 } else {
                     values[index] = .null;
@@ -514,6 +571,14 @@ fn toCatalogColumnType(column_type: ast.ColumnType) !catalog.ColumnType {
         .blob => .blob,
         .vector => |dimension| .{ .vector = .{ .dimension = dimension } },
     };
+}
+
+fn countPrimaryColumns(columns: []const ast.ColumnDef) usize {
+    var count: usize = 0;
+    for (columns) |column| {
+        if (column.primary_key) count += 1;
+    }
+    return count;
 }
 
 fn scanRowsForTable(allocator: std.mem.Allocator, session: *const Session, table: *TableState) ![]row_store.Row {
@@ -875,6 +940,12 @@ fn deinitValues(allocator: std.mem.Allocator, values: []value.Value) void {
     for (values) |*runtime_value| runtime_value.deinit(allocator);
 }
 
+fn deinitColumnSpecDefaults(allocator: std.mem.Allocator, columns: []catalog.ColumnSpec) void {
+    for (columns) |*column| {
+        if (column.default_value) |*default| default.deinit(allocator);
+    }
+}
+
 fn deinitInitializedValues(allocator: std.mem.Allocator, values: []value.Value, initialized: []const bool) void {
     for (values, initialized) |*runtime_value, is_initialized| {
         if (is_initialized) runtime_value.deinit(allocator);
@@ -903,6 +974,55 @@ test "executor creates table inserts and selects committed rows" {
     try std.testing.expectEqual(@as(usize, 1), result.result_set.rows.len);
     try std.testing.expectEqualStrings("body", result.result_set.columns[1]);
     try std.testing.expectEqualStrings("first", result.result_set.rows[0].values[1].text);
+}
+
+test "executor applies mysql-style ddl metadata during insert and drop" {
+    const allocator = std.testing.allocator;
+
+    var db = Database.init(allocator);
+    defer db.deinit();
+    var session = Session.init(allocator);
+    defer session.deinit();
+
+    var result = try db.executeSql(
+        &session,
+        "CREATE TABLE IF NOT EXISTS memories (id INTEGER PRIMARY KEY AUTO_INCREMENT, body TEXT NOT NULL DEFAULT 'seed', tag TEXT NULL, INDEX idx_tag (tag));",
+    );
+    result.deinit(allocator);
+    result = try db.executeSql(
+        &session,
+        "CREATE TABLE IF NOT EXISTS memories (id INTEGER PRIMARY KEY AUTO_INCREMENT, body TEXT NOT NULL DEFAULT 'seed', tag TEXT NULL, INDEX idx_tag (tag));",
+    );
+    result.deinit(allocator);
+
+    const table = db.db_catalog.getTable("memories").?;
+    try std.testing.expect(table.column("id").?.primary_key);
+    try std.testing.expect(table.column("id").?.auto_increment);
+    try std.testing.expectEqualStrings("seed", table.column("body").?.default_value.?.text);
+    try std.testing.expectEqual(@as(usize, 2), table.indexes.len);
+    try std.testing.expectEqualStrings("PRIMARY", table.indexes[0].name);
+    try std.testing.expectEqualStrings("idx_tag", table.indexes[1].name);
+
+    result = try db.executeSql(&session, "BEGIN;");
+    result.deinit(allocator);
+    result = try db.executeSql(&session, "INSERT INTO memories (tag) VALUES ('project');");
+    try std.testing.expectEqual(@as(usize, 1), result.mutation_count);
+    result.deinit(allocator);
+
+    result = try db.executeSql(&session, "SELECT id, body, tag FROM memories;");
+    try std.testing.expectEqual(@as(usize, 1), result.result_set.rows.len);
+    try std.testing.expectEqual(@as(i64, 1), result.result_set.rows[0].values[0].integer);
+    try std.testing.expectEqualStrings("seed", result.result_set.rows[0].values[1].text);
+    try std.testing.expectEqualStrings("project", result.result_set.rows[0].values[2].text);
+    result.deinit(allocator);
+
+    result = try db.executeSql(&session, "COMMIT;");
+    result.deinit(allocator);
+    result = try db.executeSql(&session, "DROP TABLE IF EXISTS missing;");
+    result.deinit(allocator);
+    result = try db.executeSql(&session, "DROP TABLE IF EXISTS memories;");
+    result.deinit(allocator);
+    try std.testing.expect(db.db_catalog.getTable("memories") == null);
 }
 
 test "executor preserves transaction-local visibility and commit" {

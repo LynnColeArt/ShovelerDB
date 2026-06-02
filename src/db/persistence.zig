@@ -3,7 +3,7 @@ const catalog = @import("catalog.zig");
 const row_store = @import("row_store.zig");
 const value = @import("value.zig");
 
-pub const current_version: u32 = 1;
+pub const current_version: u32 = 2;
 pub const max_snapshot_bytes: usize = 128 * 1024 * 1024;
 
 const magic = "SHOVELERDB";
@@ -217,6 +217,18 @@ fn encodePayload(allocator: std.mem.Allocator, snapshot: *const DatabaseSnapshot
             } else {
                 try appendBool(allocator, &payload, false);
             }
+            try appendBool(allocator, &payload, column.primary_key);
+            try appendBool(allocator, &payload, column.auto_increment);
+        }
+
+        try appendCount(allocator, &payload, table.indexes.len);
+        for (table.indexes) |index| {
+            try appendBool(allocator, &payload, index.kind == .primary);
+            try appendBytes(allocator, &payload, index.name);
+            try appendCount(allocator, &payload, index.columns.len);
+            for (index.columns) |column_name| {
+                try appendBytes(allocator, &payload, column_name);
+            }
         }
 
         try appendU64(allocator, &payload, store.nextRowId());
@@ -284,7 +296,6 @@ fn decodeTable(
     defer allocator.free(specs);
 
     var initialized: usize = 0;
-    errdefer deinitColumnSpecDefaults(allocator, specs[0..initialized]);
     defer deinitColumnSpecDefaults(allocator, specs[0..initialized]);
 
     for (specs) |*spec| {
@@ -292,19 +303,36 @@ fn decodeTable(
         const column_type = try decodeColumnType(cursor);
         const nullable = try cursor.readBool();
         const has_default = try cursor.readBool();
+        const default_value = if (has_default) try decodeValue(allocator, cursor) else null;
+        const primary_key = try cursor.readBool();
+        const auto_increment = try cursor.readBool();
 
         spec.* = .{
             .name = column_name,
             .column_type = column_type,
             .nullable = nullable,
-            .default_value = if (has_default) try decodeValue(allocator, cursor) else null,
+            .default_value = default_value,
+            .primary_key = primary_key,
+            .auto_increment = auto_increment,
         };
         initialized += 1;
+    }
+
+    const index_count = try cursor.readU32();
+    var indexes = try allocator.alloc(catalog.IndexSpec, index_count);
+    defer allocator.free(indexes);
+
+    var initialized_indexes: usize = 0;
+    defer deinitIndexSpecs(allocator, indexes[0..initialized_indexes]);
+    for (indexes) |*index| {
+        index.* = try decodeIndexSpec(allocator, cursor);
+        initialized_indexes += 1;
     }
 
     try snapshot.catalog.createTable(.{
         .name = table_name,
         .columns = specs,
+        .indexes = indexes,
     });
 
     snapshot.refreshStoreTablePointers();
@@ -319,6 +347,25 @@ fn decodeTable(
     }
 
     try snapshot.stores.append(allocator, store);
+}
+
+fn decodeIndexSpec(allocator: std.mem.Allocator, cursor: *Cursor) !catalog.IndexSpec {
+    const primary = try cursor.readBool();
+    const name = try cursor.readLengthPrefixedBytes();
+    const column_count = try cursor.readU32();
+
+    const columns = try allocator.alloc([]const u8, column_count);
+    errdefer allocator.free(columns);
+
+    for (columns) |*column| {
+        column.* = try cursor.readLengthPrefixedBytes();
+    }
+
+    return .{
+        .name = name,
+        .columns = columns,
+        .kind = if (primary) .primary else .secondary,
+    };
 }
 
 fn decodeRow(allocator: std.mem.Allocator, cursor: *Cursor, store: *row_store.RowStore) !void {
@@ -516,6 +563,12 @@ fn deinitColumnSpecDefaults(allocator: std.mem.Allocator, specs: []catalog.Colum
     }
 }
 
+fn deinitIndexSpecs(allocator: std.mem.Allocator, specs: []catalog.IndexSpec) void {
+    for (specs) |spec| {
+        allocator.free(spec.columns);
+    }
+}
+
 fn deinitValues(allocator: std.mem.Allocator, values: []value.Value) void {
     for (values) |*runtime_value| runtime_value.deinit(allocator);
 }
@@ -588,9 +641,19 @@ fn makeSnapshot(allocator: std.mem.Allocator) !DatabaseSnapshot {
     try snapshot.catalog.createTable(.{
         .name = "memories",
         .columns = &.{
-            .{ .name = "id", .column_type = .integer, .nullable = false },
+            .{
+                .name = "id",
+                .column_type = .integer,
+                .nullable = false,
+                .primary_key = true,
+                .auto_increment = true,
+            },
             .{ .name = "body", .column_type = .text, .nullable = false, .default_value = default_body },
             .{ .name = "embedding", .column_type = .{ .vector = .{ .dimension = 2 } } },
+        },
+        .indexes = &.{
+            .{ .columns = &.{"id"}, .kind = .primary },
+            .{ .name = "idx_body", .columns = &.{"body"} },
         },
     });
     try snapshot.catalog.registerView("recent_memories", "SELECT body FROM memories");
@@ -658,7 +721,12 @@ test "snapshot write and reopen preserves catalog and committed rows" {
 
     const table = reopened.catalog.getTable("memories").?;
     try std.testing.expectEqual(@as(usize, 3), table.columns.len);
+    try std.testing.expect(table.column("id").?.primary_key);
+    try std.testing.expect(table.column("id").?.auto_increment);
     try std.testing.expectEqualStrings("seed", table.column("body").?.default_value.?.text);
+    try std.testing.expectEqual(@as(usize, 2), table.indexes.len);
+    try std.testing.expectEqualStrings("PRIMARY", table.indexes[0].name);
+    try std.testing.expectEqualStrings("idx_body", table.indexes[1].name);
     try std.testing.expectEqual(@as(usize, 1), reopened.catalog.listViews().len);
     try std.testing.expectEqual(@as(usize, 1), reopened.catalog.listProcedures().len);
 

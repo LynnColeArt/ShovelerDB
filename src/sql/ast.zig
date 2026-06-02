@@ -12,9 +12,26 @@ pub const ColumnType = union(enum) {
 pub const ColumnDef = struct {
     name: []const u8,
     column_type: ColumnType,
+    nullable: bool = true,
+    default_value: ?Expression = null,
+    primary_key: bool = false,
+    auto_increment: bool = false,
 
     pub fn deinit(self: ColumnDef, allocator: std.mem.Allocator) void {
         allocator.free(self.name);
+        if (self.default_value) |default| default.deinit(allocator);
+    }
+};
+
+pub const IndexDef = struct {
+    name: ?[]const u8 = null,
+    columns: [][]const u8,
+    primary: bool = false,
+
+    pub fn deinit(self: IndexDef, allocator: std.mem.Allocator) void {
+        if (self.name) |name| allocator.free(name);
+        for (self.columns) |column| allocator.free(column);
+        allocator.free(self.columns);
     }
 };
 
@@ -238,12 +255,16 @@ pub const SelectStatement = struct {
 
 pub const CreateTableStatement = struct {
     name: []const u8,
+    if_not_exists: bool = false,
     columns: []ColumnDef,
+    indexes: []IndexDef = &.{},
 
     pub fn deinit(self: CreateTableStatement, allocator: std.mem.Allocator) void {
         allocator.free(self.name);
         for (self.columns) |column| column.deinit(allocator);
         allocator.free(self.columns);
+        for (self.indexes) |index| index.deinit(allocator);
+        allocator.free(self.indexes);
     }
 };
 
@@ -318,6 +339,7 @@ pub const CallStatement = struct {
 
 pub const NamedStatement = struct {
     name: []const u8,
+    if_exists: bool = false,
 
     pub fn deinit(self: NamedStatement, allocator: std.mem.Allocator) void {
         allocator.free(self.name);

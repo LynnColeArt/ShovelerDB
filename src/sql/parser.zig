@@ -5,6 +5,18 @@ const tokenizer = @import("tokenizer.zig");
 
 const ParseError = error{ ParseFailed, OutOfMemory };
 
+const ColumnAttributes = struct {
+    nullable: bool = true,
+    default_value: ?ast.Expression = null,
+    primary_key: bool = false,
+    auto_increment: bool = false,
+
+    fn deinit(self: *ColumnAttributes, allocator: std.mem.Allocator) void {
+        if (self.default_value) |default| default.deinit(allocator);
+        self.* = undefined;
+    }
+};
+
 pub const DiagnosticCode = enum {
     policy_violation,
     unexpected_token,
@@ -100,7 +112,7 @@ const Parser = struct {
         }
 
         if (self.matchKeyword("DROP")) {
-            if (self.matchKeyword("TABLE")) return .{ .drop_table = .{ .name = try self.expectIdentifierOwned("table name") } };
+            if (self.matchKeyword("TABLE")) return .{ .drop_table = try self.parseDropTable() };
             if (self.matchKeyword("VIEW")) return .{ .drop_view = .{ .name = try self.expectIdentifierOwned("view name") } };
             if (self.matchKeyword("PROCEDURE")) return .{ .drop_procedure = .{ .name = try self.expectIdentifierOwned("procedure name") } };
             return self.failCurrent(.unsupported_syntax, "TABLE, VIEW, or PROCEDURE");
@@ -120,6 +132,13 @@ const Parser = struct {
     }
 
     fn parseCreateTable(self: *Parser) ParseError!ast.CreateTableStatement {
+        var if_not_exists = false;
+        if (self.matchKeyword("IF")) {
+            try self.expectKeyword("NOT");
+            try self.expectKeyword("EXISTS");
+            if_not_exists = true;
+        }
+
         const name = try self.expectIdentifierOwned("table name");
         errdefer self.allocator.free(name);
 
@@ -129,26 +148,70 @@ const Parser = struct {
             for (columns.items) |column| column.deinit(self.allocator);
             columns.deinit(self.allocator);
         }
+        var indexes: std.ArrayList(ast.IndexDef) = .empty;
+        errdefer {
+            for (indexes.items) |index| index.deinit(self.allocator);
+            indexes.deinit(self.allocator);
+        }
 
         while (!self.matchSymbol(")")) {
+            if (self.isTableIndexStart()) {
+                try indexes.append(self.allocator, try self.parseTableIndex());
+                if (self.matchSymbol(",")) continue;
+                try self.expectSymbol(")");
+                break;
+            }
+
             var column_name: ?[]const u8 = try self.expectIdentifierOwned("column name");
             errdefer if (column_name) |owned| self.allocator.free(owned);
             const column_type = try self.parseColumnType();
+            var attributes = try self.parseColumnAttributes();
+            errdefer attributes.deinit(self.allocator);
+
             try columns.append(self.allocator, .{
                 .name = column_name.?,
                 .column_type = column_type,
+                .nullable = attributes.nullable,
+                .default_value = attributes.default_value,
+                .primary_key = attributes.primary_key,
+                .auto_increment = attributes.auto_increment,
             });
             column_name = null;
+            attributes.default_value = null;
 
-            self.skipColumnAttributes();
             if (self.matchSymbol(",")) continue;
             try self.expectSymbol(")");
             break;
         }
 
+        const column_slice = try columns.toOwnedSlice(self.allocator);
+        errdefer {
+            for (column_slice) |column| column.deinit(self.allocator);
+            self.allocator.free(column_slice);
+        }
+        const index_slice = try indexes.toOwnedSlice(self.allocator);
+        errdefer {
+            for (index_slice) |index| index.deinit(self.allocator);
+            self.allocator.free(index_slice);
+        }
+
         return .{
             .name = name,
-            .columns = try columns.toOwnedSlice(self.allocator),
+            .if_not_exists = if_not_exists,
+            .columns = column_slice,
+            .indexes = index_slice,
+        };
+    }
+
+    fn parseDropTable(self: *Parser) ParseError!ast.NamedStatement {
+        var if_exists = false;
+        if (self.matchKeyword("IF")) {
+            try self.expectKeyword("EXISTS");
+            if_exists = true;
+        }
+        return .{
+            .name = try self.expectIdentifierOwned("table name"),
+            .if_exists = if_exists,
         };
     }
 
@@ -173,6 +236,93 @@ const Parser = struct {
         }
 
         return self.failToken(token, .unsupported_syntax, "MVP column type");
+    }
+
+    fn parseColumnAttributes(self: *Parser) ParseError!ColumnAttributes {
+        var attributes = ColumnAttributes{};
+        errdefer attributes.deinit(self.allocator);
+
+        while (!self.isAtColumnDefinitionBoundary()) {
+            if (self.matchKeyword("PRIMARY")) {
+                try self.expectKeyword("KEY");
+                attributes.primary_key = true;
+                attributes.nullable = false;
+                continue;
+            }
+            if (self.matchKeyword("NOT")) {
+                try self.expectKeyword("NULL");
+                attributes.nullable = false;
+                continue;
+            }
+            if (self.matchKeyword("NULL")) {
+                attributes.nullable = true;
+                continue;
+            }
+            if (self.matchKeyword("DEFAULT")) {
+                if (attributes.default_value) |default| default.deinit(self.allocator);
+                attributes.default_value = try self.parseExpression();
+                continue;
+            }
+            if (self.matchKeyword("AUTO_INCREMENT")) {
+                attributes.auto_increment = true;
+                attributes.nullable = false;
+                continue;
+            }
+
+            try self.skipOneAttributeToken();
+        }
+
+        return attributes;
+    }
+
+    fn parseTableIndex(self: *Parser) ParseError!ast.IndexDef {
+        if (self.matchKeyword("PRIMARY")) {
+            try self.expectKeyword("KEY");
+            return .{
+                .name = null,
+                .columns = try self.parseIndexColumnList(),
+                .primary = true,
+            };
+        }
+
+        if (!self.matchKeyword("INDEX") and !self.matchKeyword("KEY")) {
+            return self.failCurrent(.unexpected_token, "INDEX or KEY");
+        }
+
+        var name: ?[]const u8 = null;
+        errdefer if (name) |owned| self.allocator.free(owned);
+        if (!self.nextIsSymbol("(")) {
+            name = try self.expectIdentifierOwned("index name");
+        }
+
+        return .{
+            .name = name,
+            .columns = try self.parseIndexColumnList(),
+            .primary = false,
+        };
+    }
+
+    fn parseIndexColumnList(self: *Parser) ParseError![][]const u8 {
+        try self.expectSymbol("(");
+        var columns: std.ArrayList([]const u8) = .empty;
+        errdefer {
+            for (columns.items) |column| self.allocator.free(column);
+            columns.deinit(self.allocator);
+        }
+
+        while (!self.matchSymbol(")")) {
+            var column: ?[]const u8 = try self.expectIdentifierOwned("index column");
+            errdefer if (column) |owned| self.allocator.free(owned);
+            if (self.matchSymbol("(")) {
+                try self.skipBalanced(")");
+            }
+            try columns.append(self.allocator, column.?);
+            column = null;
+            if (self.matchSymbol(",")) continue;
+            try self.expectSymbol(")");
+            break;
+        }
+        return columns.toOwnedSlice(self.allocator);
     }
 
     fn parseInsert(self: *Parser) ParseError!ast.InsertStatement {
@@ -807,6 +957,27 @@ const Parser = struct {
         return self.failToken(token, .unexpected_token, "comparison operator");
     }
 
+    fn isAtColumnDefinitionBoundary(self: *Parser) bool {
+        const token = self.peek() orelse return true;
+        return token.kind == .symbol and
+            (std.mem.eql(u8, token.lexeme, ",") or std.mem.eql(u8, token.lexeme, ")"));
+    }
+
+    fn isTableIndexStart(self: *Parser) bool {
+        const token = self.peek() orelse return false;
+        return token.eqlIgnoreCase("PRIMARY") or
+            token.eqlIgnoreCase("INDEX") or
+            token.eqlIgnoreCase("KEY");
+    }
+
+    fn skipOneAttributeToken(self: *Parser) ParseError!void {
+        if (self.matchSymbol("(")) {
+            try self.skipBalanced(")");
+            return;
+        }
+        _ = self.advance() orelse return;
+    }
+
     fn skipColumnAttributes(self: *Parser) void {
         while (self.peek()) |token| {
             if (token.kind == .symbol and (std.mem.eql(u8, token.lexeme, ",") or std.mem.eql(u8, token.lexeme, ")"))) return;
@@ -859,6 +1030,11 @@ const Parser = struct {
         if (token.kind != .symbol or !std.mem.eql(u8, token.lexeme, symbol)) return false;
         self.index += 1;
         return true;
+    }
+
+    fn nextIsSymbol(self: *Parser, symbol: []const u8) bool {
+        const token = self.peek() orelse return false;
+        return token.kind == .symbol and std.mem.eql(u8, token.lexeme, symbol);
     }
 
     fn expectIdentifierOwned(self: *Parser, expected: []const u8) ParseError![]const u8 {
@@ -995,6 +1171,32 @@ test "parser parses create table with vector column" {
     try std.testing.expectEqualStrings("memories", statement.name);
     try std.testing.expectEqual(@as(usize, 2), statement.columns.len);
     try std.testing.expectEqual(@as(usize, 4), statement.columns[1].column_type.vector);
+}
+
+test "parser parses mysql-style ddl metadata" {
+    const allocator = std.testing.allocator;
+    const create = try parse(
+        allocator,
+        "CREATE TABLE IF NOT EXISTS memories (id INTEGER PRIMARY KEY AUTO_INCREMENT, body TEXT NOT NULL DEFAULT 'seed', tag TEXT NULL, INDEX idx_tag (tag), KEY body_key (body));",
+    );
+    defer create.deinit(allocator);
+
+    const statement = create.statement.create_table;
+    try std.testing.expect(statement.if_not_exists);
+    try std.testing.expectEqual(@as(usize, 3), statement.columns.len);
+    try std.testing.expect(statement.columns[0].primary_key);
+    try std.testing.expect(statement.columns[0].auto_increment);
+    try std.testing.expect(!statement.columns[1].nullable);
+    try std.testing.expectEqualStrings("seed", statement.columns[1].default_value.?.literal.string);
+    try std.testing.expectEqual(@as(usize, 2), statement.indexes.len);
+    try std.testing.expectEqualStrings("idx_tag", statement.indexes[0].name.?);
+    try std.testing.expectEqualStrings("tag", statement.indexes[0].columns[0]);
+    try std.testing.expectEqualStrings("body_key", statement.indexes[1].name.?);
+
+    const drop = try parse(allocator, "DROP TABLE IF EXISTS memories;");
+    defer drop.deinit(allocator);
+    try std.testing.expect(drop.statement.drop_table.if_exists);
+    try std.testing.expectEqualStrings("memories", drop.statement.drop_table.name);
 }
 
 test "parser rejects policy violations before grammar" {
