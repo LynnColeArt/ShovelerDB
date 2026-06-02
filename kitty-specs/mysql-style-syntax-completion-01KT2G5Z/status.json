@@ -1,16 +1,16 @@
 {
-  "event_count": 43,
-  "last_event_id": "01KT44FTM58DKKZHVQ0MZ5WYQ6",
-  "materialized_at": "2026-06-02T12:21:15.013796+00:00",
+  "event_count": 44,
+  "last_event_id": "01KT44HNMRF6JQ8R90W4P3WNFQ",
+  "materialized_at": "2026-06-02T12:22:15.448068+00:00",
   "mission_number": "",
   "mission_slug": "mysql-style-syntax-completion-01KT2G5Z",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 1,
+    "approved": 0,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 8,
+    "done": 9,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
@@ -75,10 +75,10 @@
     },
     "WP09": {
       "actor": "user",
-      "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KT44FTM58DKKZHVQ0MZ5WYQ6",
-      "last_transition_at": "2026-06-02T12:21:15.013796+00:00"
+      "force_count": 2,
+      "lane": "done",
+      "last_event_id": "01KT44HNMRF6JQ8R90W4P3WNFQ",
+      "last_transition_at": "2026-06-02T12:22:15.448068+00:00"
     }
   }
 }
