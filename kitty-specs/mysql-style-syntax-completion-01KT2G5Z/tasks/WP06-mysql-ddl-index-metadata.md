@@ -57,3 +57,4 @@ server or storage-engine surfaces.
 
 - 2026-06-02T00:36:01Z – unknown – shell_pid=1166952 – Ready for review: mysql-style DDL metadata is wired through parser/catalog/executor/persistence. Validation: zig build test exit 0; zig fmt --check diff-scoped exit 0; CLI execute smoke exit 0.
 - 2026-06-02T00:38:50Z – unknown – shell_pid=1166952 – Review passed manually: lane-f after rebase satisfies WP06 DDL acceptance criteria. Verified parser/catalog/executor/persistence integration, DDL policy rejection, zig build test exit 0 before and after rebase, diff-scoped zig fmt --check exit 0, and CLI execute smoke exit 0.
+- 2026-06-02T00:39:49Z – unknown – shell_pid=1166952 – Forced done because lane-f patch was already cherry-picked to main as ed79ba4 and the rebased lane has no commits beyond main. Final validation: zig build test exit 0; CLI DDL/autoincrement/default smoke exit 0.
