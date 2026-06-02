@@ -26,6 +26,7 @@ owned_files:
 - tests/integration/procedure_acceptance.zig
 role: implementer
 tags: []
+agent: "codex:gpt-5:implementer-ivan:implementer"
 ---
 
 # WP07 - Stored Procedure Control Flow
@@ -53,3 +54,7 @@ program subset.
 - Procedure writes participate in caller transaction visibility.
 - Unsupported stored-program features have tests and diagnostics.
 - `zig build test` passes.
+
+## Activity Log
+
+- 2026-06-02T10:55:23Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1166952 – Ready for review: implemented IN params, DECLARE/SET/IF/bounded WHILE, SQL body execution, caller transaction visibility, unsupported cursor/dynamic SQL diagnostics. Validation: zig build test exit 0; zig fmt --check diff-scoped exit 0; git diff --check exit 0; CLI procedure smoke exit 0. Lane commit 62adf28.
