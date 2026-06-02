@@ -1,6 +1,8 @@
 {
+  "accept_commit": "82f7c57f7560a91ce7f91eceb4d7e030faf2f85f",
   "acceptance_history": [
     {
+      "accept_commit": "82f7c57f7560a91ce7f91eceb4d7e030faf2f85f",
       "acceptance_mode": "pr",
       "accepted_at": "2026-06-02T15:51:58.976042+00:00",
       "accepted_by": "codex:gpt-5:implementer-ivan",
