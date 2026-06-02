@@ -28,8 +28,8 @@ subtasks:
 - T007
 - T008
 assignee: codex:gpt-5:implementer-ivan
-agent: codex:gpt-5:implementer-ivan:implementer
-shell_pid: 4072697
+agent: "codex:gpt-5:implementer-ivan:implementer"
+shell_pid: "4075168"
 history:
 - timestamp: '2026-06-02T15:48:00Z'
   agent: codex:gpt-5:implementer-ivan:implementer
@@ -92,3 +92,6 @@ backfilled so Spec Kitty runtime can represent the completed work.
 ## Activity Log
 
 - 2026-06-02T15:48:20Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=4072697 – Backfilled workflow state for MVCC slice already landed on main as 865eb05.
+- 2026-06-02T15:49:34Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=4075168 – Implementation already landed on main as 865eb05. Validation evidence: zig build test passed; benchmark smoke passed with snapshot_read_write.
+- 2026-06-02T15:49:42Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=4075168 – Manual review approved for backfilled WP: implementation diff already landed as 865eb05; tests and benchmark evidence recorded in docs/acceptance-agent-concurrency-mvcc.md.
+- 2026-06-02T15:49:55Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=4075168 – Done: MVCC slice is already on main and validated. | Done override: Implementation landed directly on main before formal WP state was backfilled; landed commit is 865eb05 and validation evidence is recorded in docs/acceptance-agent-concurrency-mvcc.md.

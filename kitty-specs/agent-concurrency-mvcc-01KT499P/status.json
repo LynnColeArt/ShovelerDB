@@ -1,7 +1,7 @@
 {
-  "event_count": 3,
-  "last_event_id": "01KT4GB0DAB1A9VH2QRK509Y4M",
-  "materialized_at": "2026-06-02T15:48:20.010173+00:00",
+  "event_count": 7,
+  "last_event_id": "01KT4GDY0P41HJ64JSDH4K2KYX",
+  "materialized_at": "2026-06-02T15:49:55.862479+00:00",
   "mission_number": "",
   "mission_slug": "agent-concurrency-mvcc-01KT499P",
   "mission_type": "software-dev",
@@ -10,19 +10,19 @@
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 0,
+    "done": 1,
     "for_review": 0,
-    "in_progress": 1,
+    "in_progress": 0,
     "in_review": 0,
     "planned": 0
   },
   "work_packages": {
     "WP01": {
-      "actor": "codex:gpt-5:implementer-ivan:implementer",
+      "actor": "user",
       "force_count": 1,
-      "lane": "in_progress",
-      "last_event_id": "01KT4GB0DAB1A9VH2QRK509Y4M",
-      "last_transition_at": "2026-06-02T15:48:20.010173+00:00"
+      "lane": "done",
+      "last_event_id": "01KT4GDY0P41HJ64JSDH4K2KYX",
+      "last_transition_at": "2026-06-02T15:49:55.862479+00:00"
     }
   }
 }
