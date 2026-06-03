@@ -91,10 +91,10 @@ workers.
 **Requirement Refs**: FR-011, FR-012, FR-013, FR-014
 **Dependencies**: WP03, WP04
 
-- [ ] T015 Extend benchmark with Phase 6 concurrency metrics.
-- [ ] T016 Add multi-reader/writer/checkpoint stress tests.
-- [ ] T017 Refresh acceptance evidence and Spec Kitty notes.
-- [ ] T018 Run full validation and close implementation gaps.
+- [x] T015 Extend benchmark with Phase 6 concurrency metrics.
+- [x] T016 Add multi-reader/writer/checkpoint stress tests.
+- [x] T017 Refresh acceptance evidence and Spec Kitty notes.
+- [x] T018 Run full validation and close implementation gaps.
 
 ## Acceptance Handoff
 
