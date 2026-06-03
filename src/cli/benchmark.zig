@@ -3,6 +3,7 @@ const shovelerdb = @import("shovelerdb");
 
 const executor = shovelerdb.db.executor;
 const search = shovelerdb.vector.search;
+const vector_overlay = shovelerdb.vector.overlay;
 
 pub const BenchmarkError = error{
     InvalidOption,
@@ -149,10 +150,26 @@ pub fn run(
     result.deinit(allocator);
     const sql_vector_elapsed = elapsedSince(io, sql_vector_start);
 
-    const concurrency_ops = @min(options.operations, options.rows);
-    const concurrency_start = now(io);
-    try runSnapshotReadWriteWorkload(allocator, &db, concurrency_ops);
-    const concurrency_elapsed = elapsedSince(io, concurrency_start);
+    const phase6_ops = @min(options.operations, options.rows);
+    const snapshot_begin_start = now(io);
+    try runSnapshotBeginWorkload(allocator, &db, phase6_ops);
+    const snapshot_begin_elapsed = elapsedSince(io, snapshot_begin_start);
+
+    const queued_commit_start = now(io);
+    try runQueuedCommitWorkload(allocator, &db, phase6_ops, 2_000_000);
+    const queued_commit_elapsed = elapsedSince(io, queued_commit_start);
+
+    const concurrent_start = now(io);
+    try runConcurrentReadWriteWorkload(allocator, &db, phase6_ops, 3_000_000);
+    const concurrent_elapsed = elapsedSince(io, concurrent_start);
+
+    const checkpoint_overlap_start = now(io);
+    const checkpoint_overlap_count = try runCheckpointOverlapWorkload(allocator, &db, phase6_ops);
+    const checkpoint_overlap_elapsed = elapsedSince(io, checkpoint_overlap_start);
+
+    const vector_overlay_start = now(io);
+    const vector_overlay_count = try runVectorOverlayVisibilityWorkload(allocator, &db, phase6_ops);
+    const vector_overlay_elapsed = elapsedSince(io, vector_overlay_start);
 
     try printMetric(writer, "insert_commit", options.rows, insert_elapsed);
     try printMetric(writer, "select_scan", options.rows, scan_elapsed);
@@ -161,7 +178,11 @@ pub fn run(
     try printMetric(writer, "rollback_updates", rollback_ops, rollback_elapsed);
     try printMetric(writer, "exact_vector_scan", options.vectors, vector_elapsed);
     try printMetric(writer, "sql_vector_rank", options.vectors, sql_vector_elapsed);
-    try printMetric(writer, "snapshot_read_write", concurrency_ops, concurrency_elapsed);
+    try printMetric(writer, "snapshot_begin", phase6_ops, snapshot_begin_elapsed);
+    try printMetric(writer, "queued_commit", phase6_ops, queued_commit_elapsed);
+    try printMetric(writer, "concurrent_read_write", phase6_ops, concurrent_elapsed);
+    try printMetric(writer, "checkpoint_overlap", checkpoint_overlap_count, checkpoint_overlap_elapsed);
+    try printMetric(writer, "vector_overlay_visibility", vector_overlay_count, vector_overlay_elapsed);
     if (nearest.len > 0) {
         try writer.print("  nearest_key: {d}\n", .{nearest[0].key});
         try writer.print("  nearest_distance: {d}\n", .{nearest[0].distance});
@@ -198,10 +219,47 @@ fn loadJoinRows(
     try executeAndDiscard(allocator, db, session, "COMMIT;");
 }
 
-fn runSnapshotReadWriteWorkload(
+fn runSnapshotBeginWorkload(
     allocator: std.mem.Allocator,
     db: *executor.Database,
     operation_count: usize,
+) !void {
+    for (0..operation_count) |_| {
+        var reader = executor.Session.init(allocator);
+        defer reader.deinit();
+
+        try executeAndDiscard(allocator, db, &reader, "BEGIN;");
+        try executeAndDiscard(allocator, db, &reader, "ROLLBACK;");
+    }
+}
+
+fn runQueuedCommitWorkload(
+    allocator: std.mem.Allocator,
+    db: *executor.Database,
+    operation_count: usize,
+    id_base: usize,
+) !void {
+    var writer = executor.Session.init(allocator);
+    defer writer.deinit();
+
+    for (0..operation_count) |index| {
+        try executeAndDiscard(allocator, db, &writer, "BEGIN;");
+        const statement = try std.fmt.allocPrint(
+            allocator,
+            "INSERT INTO scalar_memory VALUES ({d}, 'queued-{d}', {d}.125);",
+            .{ id_base + index, index + 1, index % 89 },
+        );
+        defer allocator.free(statement);
+        try executeAndDiscard(allocator, db, &writer, statement);
+        try executeAndDiscard(allocator, db, &writer, "COMMIT;");
+    }
+}
+
+fn runConcurrentReadWriteWorkload(
+    allocator: std.mem.Allocator,
+    db: *executor.Database,
+    operation_count: usize,
+    id_base: usize,
 ) !void {
     var reader = executor.Session.init(allocator);
     defer reader.deinit();
@@ -214,7 +272,7 @@ fn runSnapshotReadWriteWorkload(
         const statement = try std.fmt.allocPrint(
             allocator,
             "INSERT INTO scalar_memory VALUES ({d}, 'concurrent-{d}', {d}.75);",
-            .{ 1_000_000 + index, index + 1, index % 101 },
+            .{ id_base + index, index + 1, index % 101 },
         );
         defer allocator.free(statement);
         try executeAndDiscard(allocator, db, &writer, statement);
@@ -224,6 +282,51 @@ fn runSnapshotReadWriteWorkload(
         result.deinit(allocator);
     }
     try executeAndDiscard(allocator, db, &reader, "COMMIT;");
+}
+
+fn runCheckpointOverlapWorkload(
+    allocator: std.mem.Allocator,
+    db: *executor.Database,
+    operation_count: usize,
+) !usize {
+    var reader = executor.Session.init(allocator);
+    defer reader.deinit();
+
+    try executeAndDiscard(allocator, db, &reader, "BEGIN;");
+    var checkpoint = try db.beginCheckpoint();
+    var completed = false;
+    defer if (!completed) checkpoint.fail();
+
+    var attempts: usize = 0;
+    for (0..operation_count) |_| {
+        if (db.beginCheckpoint()) |overlap| {
+            var unexpected = overlap;
+            unexpected.fail();
+            return error.InvalidBenchmarkState;
+        } else |err| switch (err) {
+            error.CheckpointAlreadyRunning => attempts += 1,
+            else => return err,
+        }
+
+        var result = try db.executeSql(&reader, "SELECT id FROM scalar_memory ORDER BY id ASC LIMIT 1;");
+        result.deinit(allocator);
+    }
+
+    checkpoint.complete();
+    completed = true;
+    try executeAndDiscard(allocator, db, &reader, "COMMIT;");
+    return attempts;
+}
+
+fn runVectorOverlayVisibilityWorkload(
+    allocator: std.mem.Allocator,
+    db: *executor.Database,
+    max_count: usize,
+) !usize {
+    const drain_count = @min(db.vectorOverlayCandidateCount("vector_memory", "embedding"), max_count);
+    const drained = try db.drainVectorOverlay(allocator, db.currentCommitSequence(), drain_count);
+    defer vector_overlay.Overlay.deinitDrained(allocator, drained);
+    return drained.len;
 }
 
 fn loadSqlVectorRows(
