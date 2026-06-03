@@ -13,6 +13,7 @@ pub const db = struct {
     pub const catalog = @import("db/catalog.zig");
     pub const ddl = @import("db/ddl.zig");
     pub const aggregate = @import("db/aggregate.zig");
+    pub const checkpoint_worker = @import("db/checkpoint_worker.zig");
     pub const concurrency = @import("db/concurrency.zig");
     pub const backpressure = @import("db/backpressure.zig");
     pub const commit_queue = @import("db/commit_queue.zig");
@@ -29,6 +30,7 @@ pub const db = struct {
 
 pub const vector = struct {
     pub const distance = @import("vector/distance.zig");
+    pub const overlay = @import("vector/overlay.zig");
     pub const search = @import("vector/search.zig");
 };
 
@@ -78,6 +80,7 @@ test {
     std.testing.refAllDecls(db.catalog);
     std.testing.refAllDecls(db.ddl);
     std.testing.refAllDecls(db.aggregate);
+    std.testing.refAllDecls(db.checkpoint_worker);
     std.testing.refAllDecls(db.concurrency);
     std.testing.refAllDecls(db.backpressure);
     std.testing.refAllDecls(db.commit_queue);
@@ -91,6 +94,7 @@ test {
     std.testing.refAllDecls(db.persistence);
     std.testing.refAllDecls(db.database);
     std.testing.refAllDecls(vector.distance);
+    std.testing.refAllDecls(vector.overlay);
     std.testing.refAllDecls(vector.search);
     std.testing.refAllDecls(mariadb.test_analyzer);
     std.testing.refAllDecls(mariadb.test_classifier);

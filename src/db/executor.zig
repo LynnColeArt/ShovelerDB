@@ -3,6 +3,7 @@ const ast = @import("../sql/ast.zig");
 const parser = @import("../sql/parser.zig");
 const procedure_body = @import("../sql/procedure_body.zig");
 const catalog = @import("catalog.zig");
+const checkpoint_worker = @import("checkpoint_worker.zig");
 const commit_queue = @import("commit_queue.zig");
 const concurrency = @import("concurrency.zig");
 const procedure = @import("procedure.zig");
@@ -13,6 +14,7 @@ const transaction = @import("transaction.zig");
 const value = @import("value.zig");
 const view = @import("view.zig");
 const vector_distance = @import("../vector/distance.zig");
+const vector_overlay = @import("../vector/overlay.zig");
 
 const max_procedure_loop_iterations = 10_000;
 const ProcedureMaterializeError = error{
@@ -125,6 +127,8 @@ pub const Database = struct {
     commit_queue: commit_queue.Queue,
     commit_lock: std.atomic.Mutex = .unlocked,
     snapshot_registry: snapshot.Registry,
+    checkpoint_worker: checkpoint_worker.Worker = .{},
+    vector_overlay: vector_overlay.Overlay,
 
     pub fn init(allocator: std.mem.Allocator) Database {
         return .{
@@ -134,10 +138,12 @@ pub const Database = struct {
             .procedures = procedure.ProcedureRegistry.init(allocator),
             .commit_queue = commit_queue.Queue.init(concurrency.default_config),
             .snapshot_registry = snapshot.Registry.init(allocator, concurrency.default_config),
+            .vector_overlay = vector_overlay.Overlay.init(allocator),
         };
     }
 
     pub fn deinit(self: *Database) void {
+        self.vector_overlay.deinit();
         self.snapshot_registry.deinit();
         for (self.tables.items) |*table| table.deinit(self.allocator);
         self.tables.deinit(self.allocator);
@@ -563,6 +569,35 @@ pub const Database = struct {
         return self.commit_queue.snapshot();
     }
 
+    pub fn checkpointSnapshot(self: *const Database) checkpoint_worker.Snapshot {
+        return self.checkpoint_worker.snapshot();
+    }
+
+    pub fn beginCheckpoint(self: *Database) concurrency.ConcurrencyError!checkpoint_worker.Ticket {
+        return self.checkpoint_worker.begin(self.currentCommitSequence());
+    }
+
+    pub fn vectorOverlayDeltaCount(self: *const Database) usize {
+        return self.vector_overlay.deltaCount();
+    }
+
+    pub fn vectorOverlayCandidateCount(
+        self: *const Database,
+        table_name: []const u8,
+        column_name: []const u8,
+    ) usize {
+        return self.vector_overlay.candidateCount(table_name, column_name);
+    }
+
+    pub fn drainVectorOverlay(
+        self: *Database,
+        allocator: std.mem.Allocator,
+        through_generation: concurrency.SnapshotGeneration,
+        max_count: usize,
+    ) ![]vector_overlay.Delta {
+        return self.vector_overlay.drainReady(allocator, through_generation, max_count);
+    }
+
     pub fn activeSnapshotHandleCount(
         self: *const Database,
         generation: concurrency.SnapshotGeneration,
@@ -600,6 +635,12 @@ pub const Database = struct {
         }
 
         try self.snapshot_registry.retainGeneration(generation, sources);
+    }
+
+    fn recordVectorOverlayDeltas(self: *Database, generation: concurrency.SnapshotGeneration) !void {
+        for (self.tables.items) |*table| {
+            try self.vector_overlay.recordCommittedStore(generation, table.name, table.store.table, &table.store);
+        }
     }
 
     fn lockCommits(self: *Database) void {
@@ -1160,6 +1201,7 @@ pub const Session = struct {
 
             db.commit_sequence = db.commit_queue.completeQueuedCommit();
             queued = false;
+            try db.recordVectorOverlayDeltas(db.commit_sequence);
         } else {
             for (self.transactions.items) |*entry| {
                 try entry.tx.commit();

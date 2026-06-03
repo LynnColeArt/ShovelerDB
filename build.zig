@@ -83,6 +83,14 @@ pub fn build(b: *std.Build) void {
             .{ .name = "shovelerdb", .module = lib_module },
         },
     });
+    const checkpoint_vector_overlay_integration_module = b.createModule(.{
+        .root_source_file = b.path("tests/integration/checkpoint_vector_overlay_acceptance.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "shovelerdb", .module = lib_module },
+        },
+    });
     const adapted_fixture_integration_module = b.createModule(.{
         .root_source_file = b.path("tests/adapted_fixture_acceptance.zig"),
         .target = target,
@@ -138,6 +146,9 @@ pub fn build(b: *std.Build) void {
     const commit_queue_integration_tests = b.addTest(.{
         .root_module = commit_queue_integration_module,
     });
+    const checkpoint_vector_overlay_integration_tests = b.addTest(.{
+        .root_module = checkpoint_vector_overlay_integration_module,
+    });
     const adapted_fixture_integration_tests = b.addTest(.{
         .root_module = adapted_fixture_integration_module,
     });
@@ -152,6 +163,7 @@ pub fn build(b: *std.Build) void {
     const run_concurrency_contract_integration_tests = b.addRunArtifact(concurrency_contract_integration_tests);
     const run_snapshot_generation_integration_tests = b.addRunArtifact(snapshot_generation_integration_tests);
     const run_commit_queue_integration_tests = b.addRunArtifact(commit_queue_integration_tests);
+    const run_checkpoint_vector_overlay_integration_tests = b.addRunArtifact(checkpoint_vector_overlay_integration_tests);
     const run_adapted_fixture_integration_tests = b.addRunArtifact(adapted_fixture_integration_tests);
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_lib_tests.step);
@@ -164,5 +176,6 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_concurrency_contract_integration_tests.step);
     test_step.dependOn(&run_snapshot_generation_integration_tests.step);
     test_step.dependOn(&run_commit_queue_integration_tests.step);
+    test_step.dependOn(&run_checkpoint_vector_overlay_integration_tests.step);
     test_step.dependOn(&run_adapted_fixture_integration_tests.step);
 }
