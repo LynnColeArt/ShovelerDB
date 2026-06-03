@@ -14,6 +14,8 @@ pub const db = struct {
     pub const ddl = @import("db/ddl.zig");
     pub const aggregate = @import("db/aggregate.zig");
     pub const concurrency = @import("db/concurrency.zig");
+    pub const backpressure = @import("db/backpressure.zig");
+    pub const commit_queue = @import("db/commit_queue.zig");
     pub const snapshot = @import("db/snapshot.zig");
     pub const row_store = @import("db/row_store.zig");
     pub const transaction = @import("db/transaction.zig");
@@ -77,6 +79,8 @@ test {
     std.testing.refAllDecls(db.ddl);
     std.testing.refAllDecls(db.aggregate);
     std.testing.refAllDecls(db.concurrency);
+    std.testing.refAllDecls(db.backpressure);
+    std.testing.refAllDecls(db.commit_queue);
     std.testing.refAllDecls(db.snapshot);
     std.testing.refAllDecls(db.row_store);
     std.testing.refAllDecls(db.transaction);

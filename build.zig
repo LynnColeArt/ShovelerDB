@@ -75,6 +75,14 @@ pub fn build(b: *std.Build) void {
             .{ .name = "shovelerdb", .module = lib_module },
         },
     });
+    const commit_queue_integration_module = b.createModule(.{
+        .root_source_file = b.path("tests/integration/commit_queue_acceptance.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "shovelerdb", .module = lib_module },
+        },
+    });
     const adapted_fixture_integration_module = b.createModule(.{
         .root_source_file = b.path("tests/adapted_fixture_acceptance.zig"),
         .target = target,
@@ -127,6 +135,9 @@ pub fn build(b: *std.Build) void {
     const snapshot_generation_integration_tests = b.addTest(.{
         .root_module = snapshot_generation_integration_module,
     });
+    const commit_queue_integration_tests = b.addTest(.{
+        .root_module = commit_queue_integration_module,
+    });
     const adapted_fixture_integration_tests = b.addTest(.{
         .root_module = adapted_fixture_integration_module,
     });
@@ -140,6 +151,7 @@ pub fn build(b: *std.Build) void {
     const run_procedure_integration_tests = b.addRunArtifact(procedure_integration_tests);
     const run_concurrency_contract_integration_tests = b.addRunArtifact(concurrency_contract_integration_tests);
     const run_snapshot_generation_integration_tests = b.addRunArtifact(snapshot_generation_integration_tests);
+    const run_commit_queue_integration_tests = b.addRunArtifact(commit_queue_integration_tests);
     const run_adapted_fixture_integration_tests = b.addRunArtifact(adapted_fixture_integration_tests);
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_lib_tests.step);
@@ -151,5 +163,6 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_procedure_integration_tests.step);
     test_step.dependOn(&run_concurrency_contract_integration_tests.step);
     test_step.dependOn(&run_snapshot_generation_integration_tests.step);
+    test_step.dependOn(&run_commit_queue_integration_tests.step);
     test_step.dependOn(&run_adapted_fixture_integration_tests.step);
 }

@@ -3,6 +3,7 @@ const ast = @import("../sql/ast.zig");
 const parser = @import("../sql/parser.zig");
 const procedure_body = @import("../sql/procedure_body.zig");
 const catalog = @import("catalog.zig");
+const commit_queue = @import("commit_queue.zig");
 const concurrency = @import("concurrency.zig");
 const procedure = @import("procedure.zig");
 const query_source = @import("query_source.zig");
@@ -121,6 +122,7 @@ pub const Database = struct {
     procedures: procedure.ProcedureRegistry,
     tables: std.ArrayList(TableState) = .empty,
     commit_sequence: concurrency.CommitSequence = 0,
+    commit_queue: commit_queue.Queue,
     commit_lock: std.atomic.Mutex = .unlocked,
     snapshot_registry: snapshot.Registry,
 
@@ -130,6 +132,7 @@ pub const Database = struct {
             .db_catalog = catalog.DatabaseCatalog.init(allocator),
             .views = view.ViewRegistry.init(allocator),
             .procedures = procedure.ProcedureRegistry.init(allocator),
+            .commit_queue = commit_queue.Queue.init(concurrency.default_config),
             .snapshot_registry = snapshot.Registry.init(allocator, concurrency.default_config),
         };
     }
@@ -554,6 +557,10 @@ pub const Database = struct {
 
     pub fn currentCommitSequence(self: *const Database) concurrency.CommitSequence {
         return self.commit_sequence;
+    }
+
+    pub fn currentCommitQueueSnapshot(self: *const Database) concurrency.CommitQueueSnapshot {
+        return self.commit_queue.snapshot();
     }
 
     pub fn activeSnapshotHandleCount(
@@ -1142,12 +1149,23 @@ pub const Session = struct {
 
         const had_writes = self.transactions.items.len > 0;
         if (had_writes) {
+            try db.commit_queue.enqueue();
+            var queued = true;
+            errdefer if (queued) db.commit_queue.abortQueuedCommit();
+
             try db.retainCurrentGenerationForActiveSnapshots(self.snapshot_handle);
+            for (self.transactions.items) |*entry| {
+                try entry.tx.commit();
+            }
+
+            db.commit_sequence = db.commit_queue.completeQueuedCommit();
+            queued = false;
+        } else {
+            for (self.transactions.items) |*entry| {
+                try entry.tx.commit();
+            }
         }
-        for (self.transactions.items) |*entry| {
-            try entry.tx.commit();
-        }
-        if (had_writes) db.commit_sequence += 1;
+
         self.last_commit_sequence = db.currentCommitSequence();
         self.clearTransactions();
         self.releaseSnapshotHandle();
