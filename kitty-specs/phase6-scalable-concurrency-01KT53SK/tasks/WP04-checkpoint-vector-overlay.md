@@ -73,3 +73,4 @@ Likely integration files include `src/db/database.zig`,
 ## Activity Log
 
 - 2026-06-03T03:50:16Z – codex – shell_pid=1166952 – WP04 lane 53cdf0f coordinates checkpoint state and vector overlay deltas; zig build test, zig fmt --check, and diff checks passed.
+- 2026-06-03T03:52:58Z – codex – shell_pid=1166952 – Manual review passed: checkpoint coordination blocks overlap, failed checkpoints preserve committed state, vector overlay deltas are live through commit/drain hooks; zig build test, zig fmt --check, and diff checks passed on rebased lane 59b17bc.
