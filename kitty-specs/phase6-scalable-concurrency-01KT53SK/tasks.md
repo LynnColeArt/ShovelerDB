@@ -67,10 +67,10 @@ workers.
 **Requirement Refs**: FR-004, FR-005, FR-006, FR-013
 **Dependencies**: WP02
 
-- [ ] T007 Add ordered commit queue structure.
-- [ ] T008 Route writer commits through the queue.
-- [ ] T009 Add bounded queue configuration and backpressure diagnostics.
-- [ ] T010 Preserve rollback semantics under write pressure.
+- [x] T007 Add ordered commit queue structure.
+- [x] T008 Route writer commits through the queue.
+- [x] T009 Add bounded queue configuration and backpressure diagnostics.
+- [x] T010 Preserve rollback semantics under write pressure.
 
 ### WP04 - Checkpoint and Vector Overlay Coordination
 
