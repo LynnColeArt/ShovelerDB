@@ -19,7 +19,7 @@ subtasks:
 - T004
 - T005
 - T006
-agent: ''
+agent: "codex"
 shell_pid: '1166952'
 history:
 - timestamp: '2026-06-02T21:29:15Z'
@@ -66,3 +66,7 @@ document any ownership guard warnings.
 - `zig build test` passes.
 - Reader snapshots stay stable without clone-on-`BEGIN` row duplication.
 - Snapshot cleanup is covered by tests.
+
+## Activity Log
+
+- 2026-06-03T03:35:28Z – codex – shell_pid=1166952 – WP02 lane 647ee26 implements snapshot generation handles; zig build test, zig fmt --check, and diff checks passed.

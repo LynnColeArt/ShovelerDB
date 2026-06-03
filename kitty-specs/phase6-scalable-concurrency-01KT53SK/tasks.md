@@ -56,9 +56,9 @@ workers.
 **Requirement Refs**: FR-002, FR-003, FR-006, FR-013
 **Dependencies**: WP01
 
-- [ ] T004 Introduce committed generation/snapshot handle model.
-- [ ] T005 Replace clone-on-BEGIN reader snapshots with cheap handles.
-- [ ] T006 Prove reader cleanup releases snapshot generations.
+- [x] T004 Introduce committed generation/snapshot handle model.
+- [x] T005 Replace clone-on-BEGIN reader snapshots with cheap handles.
+- [x] T006 Prove reader cleanup releases snapshot generations.
 
 ### WP03 - Commit Queue and Backpressure
 
