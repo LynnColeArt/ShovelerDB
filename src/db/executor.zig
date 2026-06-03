@@ -3,9 +3,11 @@ const ast = @import("../sql/ast.zig");
 const parser = @import("../sql/parser.zig");
 const procedure_body = @import("../sql/procedure_body.zig");
 const catalog = @import("catalog.zig");
+const concurrency = @import("concurrency.zig");
 const procedure = @import("procedure.zig");
 const query_source = @import("query_source.zig");
 const row_store = @import("row_store.zig");
+const snapshot = @import("snapshot.zig");
 const transaction = @import("transaction.zig");
 const value = @import("value.zig");
 const view = @import("view.zig");
@@ -118,8 +120,9 @@ pub const Database = struct {
     views: view.ViewRegistry,
     procedures: procedure.ProcedureRegistry,
     tables: std.ArrayList(TableState) = .empty,
-    commit_sequence: u64 = 0,
+    commit_sequence: concurrency.CommitSequence = 0,
     commit_lock: std.atomic.Mutex = .unlocked,
+    snapshot_registry: snapshot.Registry,
 
     pub fn init(allocator: std.mem.Allocator) Database {
         return .{
@@ -127,10 +130,12 @@ pub const Database = struct {
             .db_catalog = catalog.DatabaseCatalog.init(allocator),
             .views = view.ViewRegistry.init(allocator),
             .procedures = procedure.ProcedureRegistry.init(allocator),
+            .snapshot_registry = snapshot.Registry.init(allocator, concurrency.default_config),
         };
     }
 
     pub fn deinit(self: *Database) void {
+        self.snapshot_registry.deinit();
         for (self.tables.items) |*table| table.deinit(self.allocator);
         self.tables.deinit(self.allocator);
         self.procedures.deinit();
@@ -316,7 +321,7 @@ pub const Database = struct {
         const table = table_state.store.table;
         var tx = try session.transactionFor(self, table_state);
 
-        const rows = try scanRowsForTable(self.allocator, session, table_state);
+        const rows = try scanRowsForTable(self.allocator, self, session, table_state);
         defer row_store.deinitRows(self.allocator, rows);
 
         var count: usize = 0;
@@ -344,7 +349,7 @@ pub const Database = struct {
         const table = table_state.store.table;
         var tx = try session.transactionFor(self, table_state);
 
-        const rows = try scanRowsForTable(self.allocator, session, table_state);
+        const rows = try scanRowsForTable(self.allocator, self, session, table_state);
         defer row_store.deinitRows(self.allocator, rows);
 
         var count: usize = 0;
@@ -547,8 +552,47 @@ pub const Database = struct {
         }
     }
 
-    pub fn currentCommitSequence(self: *const Database) u64 {
+    pub fn currentCommitSequence(self: *const Database) concurrency.CommitSequence {
         return self.commit_sequence;
+    }
+
+    pub fn activeSnapshotHandleCount(
+        self: *const Database,
+        generation: concurrency.SnapshotGeneration,
+    ) usize {
+        return self.snapshot_registry.activeRefCount(generation);
+    }
+
+    pub fn retainedSnapshotGenerationCount(self: *const Database) usize {
+        return self.snapshot_registry.retainedGenerationCount();
+    }
+
+    pub fn retainedSnapshotRowCount(
+        self: *const Database,
+        generation: concurrency.SnapshotGeneration,
+        table_name: []const u8,
+    ) ?usize {
+        return self.snapshot_registry.retainedRowCount(generation, table_name);
+    }
+
+    fn retainCurrentGenerationForActiveSnapshots(
+        self: *Database,
+        excluding: ?snapshot.SnapshotHandle,
+    ) !void {
+        const generation = self.currentCommitSequence();
+        if (!self.snapshot_registry.needsRetention(generation, excluding)) return;
+
+        const sources = try self.allocator.alloc(snapshot.TableSource, self.tables.items.len);
+        defer self.allocator.free(sources);
+
+        for (self.tables.items, 0..) |*table, index| {
+            sources[index] = .{
+                .table = table.store.table,
+                .store = &table.store,
+            };
+        }
+
+        try self.snapshot_registry.retainGeneration(generation, sources);
     }
 
     fn lockCommits(self: *Database) void {
@@ -1061,42 +1105,13 @@ const TableTransaction = struct {
     }
 };
 
-const SnapshotTable = struct {
-    table: catalog.TableDef,
-    store: row_store.RowStore,
-
-    fn init(allocator: std.mem.Allocator, source: *const TableState) !SnapshotTable {
-        var table = try cloneTableDef(allocator, source.store.table.*);
-        errdefer table.deinit(allocator);
-
-        var store = row_store.RowStore.init(allocator, &table);
-        errdefer store.deinit();
-
-        for (source.store.rows()) |row| {
-            try store.insertWithId(row.id, row.values);
-        }
-        store.next_id = source.store.nextRowId();
-
-        return .{
-            .table = table,
-            .store = store,
-        };
-    }
-
-    fn deinit(self: *SnapshotTable, allocator: std.mem.Allocator) void {
-        self.store.deinit();
-        self.table.deinit(allocator);
-        self.* = undefined;
-    }
-};
-
 pub const Session = struct {
     allocator: std.mem.Allocator,
     active: bool = false,
-    snapshot_sequence: ?u64 = null,
-    last_commit_sequence: ?u64 = null,
+    snapshot_sequence: ?concurrency.SnapshotGeneration = null,
+    last_commit_sequence: ?concurrency.CommitSequence = null,
     transactions: std.ArrayList(TableTransaction) = .empty,
-    snapshots: std.ArrayList(SnapshotTable) = .empty,
+    snapshot_handle: ?snapshot.SnapshotHandle = null,
 
     pub fn init(allocator: std.mem.Allocator) Session {
         return .{ .allocator = allocator };
@@ -1105,8 +1120,7 @@ pub const Session = struct {
     pub fn deinit(self: *Session) void {
         for (self.transactions.items) |*entry| entry.deinit(self.allocator);
         self.transactions.deinit(self.allocator);
-        self.clearSnapshots();
-        self.snapshots.deinit(self.allocator);
+        self.releaseSnapshotHandle();
         self.* = undefined;
     }
 
@@ -1115,15 +1129,10 @@ pub const Session = struct {
         db.lockCommits();
         defer db.unlockCommits();
 
+        const handle = try db.snapshot_registry.acquire(db.currentCommitSequence());
+        self.snapshot_sequence = handle.generation;
+        self.snapshot_handle = handle;
         self.active = true;
-        errdefer {
-            self.clearSnapshots();
-            self.snapshot_sequence = null;
-            self.active = false;
-        }
-
-        self.snapshot_sequence = db.currentCommitSequence();
-        try self.captureSnapshots(db);
     }
 
     pub fn commit(self: *Session, db: *Database) !void {
@@ -1132,14 +1141,16 @@ pub const Session = struct {
         defer db.unlockCommits();
 
         const had_writes = self.transactions.items.len > 0;
+        if (had_writes) {
+            try db.retainCurrentGenerationForActiveSnapshots(self.snapshot_handle);
+        }
         for (self.transactions.items) |*entry| {
             try entry.tx.commit();
         }
         if (had_writes) db.commit_sequence += 1;
         self.last_commit_sequence = db.currentCommitSequence();
         self.clearTransactions();
-        self.clearSnapshots();
-        self.snapshot_sequence = null;
+        self.releaseSnapshotHandle();
         self.active = false;
     }
 
@@ -1149,8 +1160,7 @@ pub const Session = struct {
             try entry.tx.rollback();
         }
         self.clearTransactions();
-        self.clearSnapshots();
-        self.snapshot_sequence = null;
+        self.releaseSnapshotHandle();
         self.active = false;
     }
 
@@ -1173,12 +1183,25 @@ pub const Session = struct {
         return &self.transactions.items[index].tx;
     }
 
-    fn snapshotForRead(self: *const Session, table_name: []const u8) ?*const row_store.RowStore {
-        if (!self.active or self.snapshot_sequence == null) return null;
-        for (self.snapshots.items) |snapshot| {
-            if (std.ascii.eqlIgnoreCase(snapshot.table.name, table_name)) return &snapshot.store;
-        }
-        return null;
+    fn snapshotStoreForRead(
+        self: *const Session,
+        db: *const Database,
+        table_name: []const u8,
+    ) !?*const row_store.RowStore {
+        if (!self.active) return null;
+        const handle = self.snapshot_handle orelse return null;
+        if (db.snapshot_registry.retainedStoreForTable(handle.generation, table_name)) |store| return store;
+        if (handle.generation == db.currentCommitSequence()) return null;
+        return error.SnapshotRetentionExceeded;
+    }
+
+    fn baseStoreForRead(
+        self: *const Session,
+        db: *const Database,
+        table: *TableState,
+    ) !*const row_store.RowStore {
+        if (try self.snapshotStoreForRead(db, table.name)) |snapshot_store| return snapshot_store;
+        return &table.store;
     }
 
     fn findTransactionIndex(self: *const Session, table_name: []const u8) ?usize {
@@ -1193,25 +1216,10 @@ pub const Session = struct {
         self.transactions.clearRetainingCapacity();
     }
 
-    fn captureSnapshots(self: *Session, db: *Database) !void {
-        try self.snapshots.ensureTotalCapacity(self.allocator, db.tables.items.len);
-        for (db.tables.items) |*table| {
-            var snapshot = try SnapshotTable.init(self.allocator, table);
-            errdefer snapshot.deinit(self.allocator);
-            try self.snapshots.append(self.allocator, snapshot);
-        }
-        self.refreshSnapshotPointers();
-    }
-
-    fn refreshSnapshotPointers(self: *Session) void {
-        for (self.snapshots.items) |*snapshot| {
-            snapshot.store.table = &snapshot.table;
-        }
-    }
-
-    fn clearSnapshots(self: *Session) void {
-        for (self.snapshots.items) |*snapshot| snapshot.deinit(self.allocator);
-        self.snapshots.clearRetainingCapacity();
+    fn releaseSnapshotHandle(self: *Session) void {
+        if (self.snapshot_handle) |*handle| handle.release();
+        self.snapshot_handle = null;
+        self.snapshot_sequence = null;
     }
 };
 
@@ -1226,7 +1234,7 @@ fn loadBaseTableForQuerySource(user_data: *anyopaque, name: []const u8) !query_s
     return .{
         .name = table_state.store.table.name,
         .columns = table_state.store.table.columns,
-        .rows = try scanRowsForTable(bridge.db.allocator, bridge.session, table_state),
+        .rows = try scanRowsForTable(bridge.db.allocator, bridge.db, bridge.session, table_state),
     };
 }
 
@@ -1255,9 +1263,21 @@ fn countPrimaryColumns(columns: []const ast.ColumnDef) usize {
     return count;
 }
 
-fn scanRowsForTable(allocator: std.mem.Allocator, session: *const Session, table: *TableState) ![]row_store.Row {
-    if (session.transactionForRead(table.name)) |tx| return tx.scan();
-    if (session.snapshotForRead(table.name)) |snapshot| return cloneRowsFromStore(allocator, snapshot);
+fn scanRowsForTable(
+    allocator: std.mem.Allocator,
+    db: *const Database,
+    session: *const Session,
+    table: *TableState,
+) ![]row_store.Row {
+    if (session.transactionForRead(table.name)) |tx| {
+        const base_store = try session.baseStoreForRead(db, table);
+        return tx.scanWithBase(base_store);
+    }
+
+    if (try session.snapshotStoreForRead(db, table.name)) |snapshot_store| {
+        return cloneRowsFromStore(allocator, snapshot_store);
+    }
+
     return cloneRowsFromStore(allocator, &table.store);
 }
 

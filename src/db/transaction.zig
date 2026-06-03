@@ -123,12 +123,16 @@ pub const Transaction = struct {
     }
 
     pub fn scan(self: *const Transaction) ![]row_store.Row {
+        return self.scanWithBase(self.store);
+    }
+
+    pub fn scanWithBase(self: *const Transaction, base_store: *const row_store.RowStore) ![]row_store.Row {
         try self.ensureActive();
 
         var visible: std.ArrayList(row_store.Row) = .empty;
         errdefer deinitRowList(self.allocator, &visible);
 
-        for (self.store.rows()) |committed| {
+        for (base_store.rows()) |committed| {
             if (self.isDeleted(committed.id)) continue;
 
             const visible_row = if (self.findUpdatedIndex(committed.id)) |index|
@@ -136,7 +140,7 @@ pub const Transaction = struct {
             else
                 committed;
 
-            var cloned = try visible_row.clone(self.allocator, self.store.table);
+            var cloned = try visible_row.clone(self.allocator, base_store.table);
             errdefer cloned.deinit(self.allocator);
             try visible.append(self.allocator, cloned);
         }
