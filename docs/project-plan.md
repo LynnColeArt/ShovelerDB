@@ -132,23 +132,27 @@ Exit criteria:
 ## Phase 6: Concurrency Model
 
 Status: started; the first MVCC correctness slice is complete, and the active
-follow-up mission covers the scalable operational pieces.
+follow-up mission `phase6-scalable-concurrency-01KT53SK` covers the scalable
+operational pieces.
 
 Goal: make ShovelerDB useful as an agent memory kernel.
 
 Tasks:
 
-- MVCC snapshots for readers.
-- Ordered write/commit sequencer.
-- Backpressure for write queues.
-- Background checkpoint worker.
-- Background vector index worker.
+- Preserve MVCC snapshot visibility for readers.
+- Replace eager snapshot cloning with cheap generation-style snapshot handles.
+- Add one ordered write/commit sequencer with typed queue backpressure.
+- Coordinate checkpoints with committed generations without blocking readers.
+- Keep committed vector writes visible through an exact-scan overlay before any
+  future ANN/background indexing work.
 
 Exit criteria:
 
 - Many concurrent readers see stable snapshots.
 - Concurrent writers commit in a deterministic order.
 - Vector writes are visible through an overlay before background indexing.
+- Checkpoint and backpressure failures report typed diagnostics instead of
+  corrupting state or silently dropping writes.
 
 ## Phase 7: Views and Procedures
 
@@ -194,7 +198,9 @@ Exit criteria:
 Status: planned.
 
 Goal: make ShovelerDB easy to embed from the agent stacks people actually use
-without turning the database into a server product.
+without turning the database into a server product. Phase 6 defines the core
+typed diagnostics these connectors will eventually map, but connector packages
+and ABI work remain in Phase 9.
 
 Tasks:
 
