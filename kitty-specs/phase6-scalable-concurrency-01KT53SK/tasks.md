@@ -45,9 +45,9 @@ workers.
 **Requirement Refs**: FR-001, FR-011, FR-013, FR-014
 **Dependencies**: none
 
-- [ ] T001 Document concurrency contract and roadmap status.
-- [ ] T002 Add concurrency acceptance/stress harness skeleton.
-- [ ] T003 Define typed concurrency diagnostics.
+- [x] T001 Document concurrency contract and roadmap status.
+- [x] T002 Add concurrency acceptance/stress harness skeleton.
+- [x] T003 Define typed concurrency diagnostics.
 
 ### WP02 - Cheap Snapshot Generations
 

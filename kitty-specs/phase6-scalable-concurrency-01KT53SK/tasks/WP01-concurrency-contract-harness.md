@@ -18,7 +18,7 @@ subtasks:
 - T001
 - T002
 - T003
-agent: ''
+agent: "codex"
 shell_pid: '1166952'
 history:
 - timestamp: '2026-06-02T21:29:15Z'
@@ -65,3 +65,7 @@ concurrency acceptance harness.
 - `zig build test` passes.
 - Concurrency contract docs describe what later WPs must preserve.
 - The new test harness compiles and can be extended by later WPs.
+
+## Activity Log
+
+- 2026-06-03T03:20:54Z – codex – shell_pid=1166952 – WP01 lane d6a8b0f implements concurrency contract harness; validation passed.
