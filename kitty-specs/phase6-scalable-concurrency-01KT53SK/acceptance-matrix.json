@@ -2,148 +2,157 @@
   "mission_slug": "phase6-scalable-concurrency-01KT53SK",
   "mission_number": "",
   "mission_type": "software-dev",
-  "overall_verdict": "pending",
+  "overall_verdict": "pass",
   "criteria": [
     {
       "criterion_id": "FR-001",
-      "description": "Verify FR-001 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "Document the Phase 6 concurrency contract.",
+      "proof_type": "documentation",
+      "evidence": "docs/concurrency.md documents session lifecycle, snapshot visibility, write ordering, backpressure, checkpointing, and vector overlay semantics.",
+      "pass_fail": "pass",
+      "verified_by": "codex",
+      "verified_at": "2026-06-03T04:04:25Z",
+      "notes": "Covered by WP01 contract documentation and retained in final acceptance evidence."
     },
     {
       "criterion_id": "FR-002",
-      "description": "Verify FR-002 is satisfied",
+      "description": "Read transactions acquire cheap generation snapshots instead of cloning every row at BEGIN.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "tests/integration/snapshot_generation_acceptance.zig verifies generation handles and no retained row snapshot until a writer advances the generation.",
+      "pass_fail": "pass",
+      "verified_by": "codex",
+      "verified_at": "2026-06-03T04:04:25Z",
+      "notes": "Validated by zig build test."
     },
     {
       "criterion_id": "FR-003",
-      "description": "Verify FR-003 is satisfied",
+      "description": "Reader snapshots remain stable while later commits, checkpoints, and vector overlay updates occur.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "tests/integration/concurrency_stress_acceptance.zig keeps many active readers stable while writers commit and checkpoint overlap is active.",
+      "pass_fail": "pass",
+      "verified_by": "codex",
+      "verified_at": "2026-06-03T04:04:25Z",
+      "notes": "Validated by zig build test."
     },
     {
       "criterion_id": "FR-004",
-      "description": "Verify FR-004 is satisfied",
+      "description": "Writer commits pass through one ordered commit sequencer.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "tests/integration/commit_queue_acceptance.zig verifies monotonic commit sequence assignment through the commit queue.",
+      "pass_fail": "pass",
+      "verified_by": "codex",
+      "verified_at": "2026-06-03T04:04:25Z",
+      "notes": "Validated by zig build test."
     },
     {
       "criterion_id": "FR-005",
-      "description": "Verify FR-005 is satisfied",
+      "description": "The commit sequencer exposes bounded queue configuration and typed backpressure diagnostics.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "tests/integration/commit_queue_acceptance.zig and tests/integration/concurrency_stress_acceptance.zig verify CommitQueueFull diagnostics and queue state preservation.",
+      "pass_fail": "pass",
+      "verified_by": "codex",
+      "verified_at": "2026-06-03T04:04:25Z",
+      "notes": "Validated by zig build test."
     },
     {
       "criterion_id": "FR-006",
-      "description": "Verify FR-006 is satisfied",
+      "description": "Rollback stays local and does not enqueue commit work or advance the sequence.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "tests/integration/commit_queue_acceptance.zig verifies rollback leaves queue depth and commit sequence unchanged.",
+      "pass_fail": "pass",
+      "verified_by": "codex",
+      "verified_at": "2026-06-03T04:04:25Z",
+      "notes": "Validated by zig build test."
     },
     {
       "criterion_id": "FR-007",
-      "description": "Verify FR-007 is satisfied",
+      "description": "Checkpoint requests snapshot committed generations without mutating active reader snapshots.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "tests/integration/checkpoint_vector_overlay_acceptance.zig verifies checkpoint tickets and active reader snapshot stability.",
+      "pass_fail": "pass",
+      "verified_by": "codex",
+      "verified_at": "2026-06-03T04:04:25Z",
+      "notes": "Validated by zig build test."
     },
     {
       "criterion_id": "FR-008",
-      "description": "Verify FR-008 is satisfied",
+      "description": "Checkpoint failures leave durable and in-memory committed state intact.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "tests/integration/checkpoint_vector_overlay_acceptance.zig verifies failed checkpoint coordination leaves committed rows visible.",
+      "pass_fail": "pass",
+      "verified_by": "codex",
+      "verified_at": "2026-06-03T04:04:25Z",
+      "notes": "Validated by zig build test."
     },
     {
       "criterion_id": "FR-009",
-      "description": "Verify FR-009 is satisfied",
+      "description": "Vector writes are visible to exact SQL/vector scans through committed overlay state.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "tests/integration/checkpoint_vector_overlay_acceptance.zig and tests/integration/concurrency_stress_acceptance.zig verify exact vector nearest queries after committed vector writes.",
+      "pass_fail": "pass",
+      "verified_by": "codex",
+      "verified_at": "2026-06-03T04:04:25Z",
+      "notes": "Validated by zig build test."
     },
     {
       "criterion_id": "FR-010",
-      "description": "Verify FR-010 is satisfied",
+      "description": "Vector overlay exposes drain hooks for a future background vector index worker.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "src/vector/overlay.zig exposes drainReady/deinitDrained hooks, covered by checkpoint/vector overlay and stress integration tests.",
+      "pass_fail": "pass",
+      "verified_by": "codex",
+      "verified_at": "2026-06-03T04:04:25Z",
+      "notes": "Validated by zig build test."
     },
     {
       "criterion_id": "FR-011",
-      "description": "Verify FR-011 is satisfied",
+      "description": "Concurrency tests cover interleaved readers/writers, backpressure, rollback, checkpoint overlap, and vector overlay visibility.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "tests/integration/concurrency_stress_acceptance.zig covers all requested stress surfaces.",
+      "pass_fail": "pass",
+      "verified_by": "codex",
+      "verified_at": "2026-06-03T04:04:25Z",
+      "notes": "Validated by zig build test."
     },
     {
       "criterion_id": "FR-012",
-      "description": "Verify FR-012 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "Benchmark CLI reports separate Phase 6 metrics.",
+      "proof_type": "manual_smoke",
+      "evidence": "zig build run -- benchmark --rows 100 --vectors 32 --dimensions 8 --operations 25 reports snapshot_begin, queued_commit, concurrent_read_write, checkpoint_overlap, and vector_overlay_visibility.",
+      "pass_fail": "pass",
+      "verified_by": "codex",
+      "verified_at": "2026-06-03T04:04:25Z",
+      "notes": "Benchmark smoke passed."
     },
     {
       "criterion_id": "FR-013",
-      "description": "Verify FR-013 is satisfied",
+      "description": "Existing SQL, transaction, view, procedure, vector, MTR-lite, and persistence acceptance tests continue to pass.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "zig build test passed after WP05 stress test and benchmark updates.",
+      "pass_fail": "pass",
+      "verified_by": "codex",
+      "verified_at": "2026-06-03T04:04:25Z",
+      "notes": "Full root test step includes all current integration modules."
     },
     {
       "criterion_id": "FR-014",
-      "description": "Verify FR-014 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "Implementation preserves embedded-first APIs and adds no server lifecycle concepts.",
+      "proof_type": "code_review",
+      "evidence": "Phase 6 changes remain in embedded Database/session, test, docs, and CLI benchmark surfaces; no server, protocol, auth, or daemon lifecycle was introduced.",
+      "pass_fail": "pass",
+      "verified_by": "codex",
+      "verified_at": "2026-06-03T04:04:25Z",
+      "notes": "Confirmed during WP05 implementation review."
     }
   ],
-  "negative_invariants": []
+  "negative_invariants": [
+    {
+      "invariant_id": "NO-SERVER-LIFECYCLE",
+      "description": "Phase 6 must not introduce a server daemon, network protocol, auth, replication, plugin, or cloud lifecycle surface.",
+      "evidence": "Touched files are embedded executor/concurrency/test/docs/benchmark surfaces only.",
+      "pass_fail": "pass",
+      "verified_by": "codex",
+      "verified_at": "2026-06-03T04:04:25Z"
+    }
+  ]
 }
