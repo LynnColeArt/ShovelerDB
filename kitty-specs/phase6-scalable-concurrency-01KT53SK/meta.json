@@ -9,5 +9,7 @@
   "purpose_context": "This mission advances phase6 scalable concurrency on main so stakeholders can track the work from mission creation onward.",
   "purpose_tldr": "phase6 scalable concurrency",
   "slug": "phase6-scalable-concurrency-01KT53SK",
-  "target_branch": "main"
+  "target_branch": "main",
+  "vcs": "git",
+  "vcs_locked_at": "2026-06-03T03:12:54.652590+00:00"
 }
