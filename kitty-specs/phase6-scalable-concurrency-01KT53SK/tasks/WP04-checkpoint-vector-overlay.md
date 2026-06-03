@@ -21,7 +21,7 @@ subtasks:
 - T012
 - T013
 - T014
-agent: ''
+agent: "codex"
 shell_pid: '1166952'
 history:
 - timestamp: '2026-06-02T21:29:15Z'
@@ -69,3 +69,7 @@ Likely integration files include `src/db/database.zig`,
 - `zig build test` passes.
 - Checkpoint-overlap tests pass.
 - Exact vector reads see committed overlay deltas.
+
+## Activity Log
+
+- 2026-06-03T03:50:16Z – codex – shell_pid=1166952 – WP04 lane 53cdf0f coordinates checkpoint state and vector overlay deltas; zig build test, zig fmt --check, and diff checks passed.

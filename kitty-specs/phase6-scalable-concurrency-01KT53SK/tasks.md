@@ -79,10 +79,10 @@ workers.
 **Requirement Refs**: FR-007, FR-008, FR-009, FR-010, FR-013
 **Dependencies**: WP03
 
-- [ ] T011 Add checkpoint worker coordination contract.
-- [ ] T012 Prove checkpoints do not mutate active reader generations.
-- [ ] T013 Add vector overlay delta contract.
-- [ ] T014 Prove exact vector scans include committed overlay deltas.
+- [x] T011 Add checkpoint worker coordination contract.
+- [x] T012 Prove checkpoints do not mutate active reader generations.
+- [x] T013 Add vector overlay delta contract.
+- [x] T014 Prove exact vector scans include committed overlay deltas.
 
 ### WP05 - Stress Benchmarks and Acceptance
 
