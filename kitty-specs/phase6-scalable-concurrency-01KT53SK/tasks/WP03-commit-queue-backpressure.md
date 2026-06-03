@@ -71,3 +71,4 @@ Likely integration files include `src/db/executor.zig`,
 
 - 2026-06-03T03:42:07Z – codex – shell_pid=1166952 – WP03 lane 9cd186b routes commits through a bounded queue; zig build test, zig fmt --check, and diff checks passed.
 - 2026-06-03T03:43:17Z – codex – shell_pid=1166952 – Manual review passed: commits reserve bounded queue slots, ordered commit sequences are assigned on success, and rollback remains queue-neutral.
+- 2026-06-03T04:11:20Z – codex – shell_pid=1166952 – WP03 marked done after accepted mission branch because implementation is already landed on main and merge command is blocked by stale lane bookkeeping. | Done override: WP03 implementation was already reviewed, cherry-picked to main, validated, pushed, and accepted; Spec Kitty merge is blocked by stale lane bookkeeping in this protected-main workflow.

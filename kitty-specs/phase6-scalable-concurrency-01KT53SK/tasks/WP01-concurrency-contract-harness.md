@@ -70,3 +70,4 @@ concurrency acceptance harness.
 
 - 2026-06-03T03:20:54Z – codex – shell_pid=1166952 – WP01 lane d6a8b0f implements concurrency contract harness; validation passed.
 - 2026-06-03T03:21:39Z – codex – shell_pid=1166952 – Manual review passed: WP01 contract harness is wired, tests pass, and implementation is ready to land.
+- 2026-06-03T04:11:18Z – codex – shell_pid=1166952 – WP01 marked done after accepted mission branch because implementation is already landed on main and merge command is blocked by stale lane bookkeeping. | Done override: WP01 implementation was already reviewed, cherry-picked to main, validated, pushed, and accepted; Spec Kitty merge is blocked by stale lane bookkeeping in this protected-main workflow.

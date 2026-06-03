@@ -71,3 +71,4 @@ document any ownership guard warnings.
 
 - 2026-06-03T03:35:28Z – codex – shell_pid=1166952 – WP02 lane 647ee26 implements snapshot generation handles; zig build test, zig fmt --check, and diff checks passed.
 - 2026-06-03T03:36:31Z – codex – shell_pid=1166952 – Manual review passed: snapshot handles replace clone-on-BEGIN, retained generations preserve reader visibility, and cleanup tests pass.
+- 2026-06-03T04:11:19Z – codex – shell_pid=1166952 – WP02 marked done after accepted mission branch because implementation is already landed on main and merge command is blocked by stale lane bookkeeping. | Done override: WP02 implementation was already reviewed, cherry-picked to main, validated, pushed, and accepted; Spec Kitty merge is blocked by stale lane bookkeeping in this protected-main workflow.
