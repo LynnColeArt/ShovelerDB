@@ -1,4 +1,16 @@
 {
+  "acceptance_history": [
+    {
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-06-03T04:09:36.902083+00:00",
+      "accepted_by": "codex",
+      "accepted_from_commit": "0ee71841a95d69ba1e3c1af04594725a993c4cbe"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-06-03T04:09:36.902083+00:00",
+  "accepted_by": "codex",
+  "accepted_from_commit": "0ee71841a95d69ba1e3c1af04594725a993c4cbe",
   "coordination_branch": "kitty/mission-phase6-scalable-concurrency-01KT53SK",
   "created_at": "2026-06-02T21:28:21.513589+00:00",
   "friendly_name": "phase6 scalable concurrency",
