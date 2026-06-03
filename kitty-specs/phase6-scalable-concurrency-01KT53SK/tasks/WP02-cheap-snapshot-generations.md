@@ -70,3 +70,4 @@ document any ownership guard warnings.
 ## Activity Log
 
 - 2026-06-03T03:35:28Z – codex – shell_pid=1166952 – WP02 lane 647ee26 implements snapshot generation handles; zig build test, zig fmt --check, and diff checks passed.
+- 2026-06-03T03:36:31Z – codex – shell_pid=1166952 – Manual review passed: snapshot handles replace clone-on-BEGIN, retained generations preserve reader visibility, and cleanup tests pass.
