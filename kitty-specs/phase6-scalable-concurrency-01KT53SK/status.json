@@ -1,7 +1,7 @@
 {
-  "event_count": 20,
-  "last_event_id": "01KT5S8476A66GMG0FX3PBBJKT",
-  "materialized_at": "2026-06-03T03:43:17.222978+00:00",
+  "event_count": 22,
+  "last_event_id": "01KT5S9SDM2J5VZFFS6ENT2AK4",
+  "materialized_at": "2026-06-03T03:44:11.699911+00:00",
   "mission_number": "",
   "mission_slug": "phase6-scalable-concurrency-01KT53SK",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 2
+    "planned": 1
   },
   "work_packages": {
     "WP01": {
@@ -39,11 +39,11 @@
       "last_transition_at": "2026-06-03T03:43:17.222978+00:00"
     },
     "WP04": {
-      "actor": "finalize-tasks",
+      "actor": "implement-command",
       "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KT541XAMYC6NYN97A3HX1BS0",
-      "last_transition_at": "2026-06-02T21:32:53.460114+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KT5S9SDM2J5VZFFS6ENT2AK4",
+      "last_transition_at": "2026-06-03T03:44:11.699911+00:00"
     },
     "WP05": {
       "actor": "finalize-tasks",
