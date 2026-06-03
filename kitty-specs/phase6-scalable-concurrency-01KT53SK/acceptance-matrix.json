@@ -149,10 +149,10 @@
     {
       "invariant_id": "NO-SERVER-LIFECYCLE",
       "description": "Phase 6 must not introduce a server daemon, network protocol, auth, replication, plugin, or cloud lifecycle surface.",
-      "evidence": "Touched files are embedded executor/concurrency/test/docs/benchmark surfaces only.",
-      "pass_fail": "pass",
-      "verified_by": "codex",
-      "verified_at": "2026-06-03T04:04:25Z"
+      "verification_method": "custom_command",
+      "verification_command": "if find src -maxdepth 3 -type f | grep -E '(^src/(server|network|auth|replication|plugin)|daemon)' >/dev/null; then exit 1; else echo no-server-lifecycle-source-paths; fi",
+      "result": "confirmed_absent",
+      "evidence": "Command exited 0: no-server-lifecycle-source-paths"
     }
   ]
 }
