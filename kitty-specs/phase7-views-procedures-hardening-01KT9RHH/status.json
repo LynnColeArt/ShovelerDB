@@ -1,7 +1,7 @@
 {
-  "event_count": 4,
-  "last_event_id": "01KTAGJ06QDRJATCJKBNRHK8XH",
-  "materialized_at": "2026-06-04T23:47:35.767569+00:00",
+  "event_count": 5,
+  "last_event_id": "01KTAGJ1N1V0F7GD7MF3WM2PFE",
+  "materialized_at": "2026-06-04T23:47:37.249330+00:00",
   "mission_number": "",
   "mission_slug": "phase7-views-procedures-hardening-01KT9RHH",
   "mission_type": "software-dev",
@@ -14,7 +14,7 @@
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
-    "planned": 4
+    "planned": 5
   },
   "work_packages": {
     "WP01": {
@@ -44,6 +44,13 @@
       "lane": "planned",
       "last_event_id": "01KTAGJ06QDRJATCJKBNRHK8XH",
       "last_transition_at": "2026-06-04T23:47:35.767569+00:00"
+    },
+    "WP05": {
+      "actor": "finalize-tasks",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01KTAGJ1N1V0F7GD7MF3WM2PFE",
+      "last_transition_at": "2026-06-04T23:47:37.249330+00:00"
     }
   }
 }
