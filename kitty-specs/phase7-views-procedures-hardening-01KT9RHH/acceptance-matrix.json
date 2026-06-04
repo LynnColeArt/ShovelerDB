@@ -132,7 +132,7 @@
       "verification_method": "custom_command",
       "verification_command": "zig build test --summary none",
       "result": "confirmed_absent",
-      "evidence": "tests/integration/procedure_diagnostics_acceptance.zig",
+      "evidence": "Command exited 0: ",
       "verified_by": "codex:gpt-5"
     },
     {
@@ -141,7 +141,7 @@
       "verification_method": "custom_command",
       "verification_command": "zig build test --summary none",
       "result": "confirmed_absent",
-      "evidence": "docs/sql-dialect.md; src/lib.zig feature policy tests",
+      "evidence": "Command exited 0: ",
       "verified_by": "codex:gpt-5"
     }
   ]
