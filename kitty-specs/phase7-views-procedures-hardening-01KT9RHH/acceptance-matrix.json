@@ -129,14 +129,20 @@
     {
       "invariant_id": "NI-001",
       "description": "Rejected procedure bodies must not leave partial catalog or registry entries.",
-      "evidence": "tests/integration/procedure_diagnostics_acceptance.zig",
-      "pass_fail": "pass"
+      "verification_method": "custom_command",
+      "verification_command": "zig build test --summary none",
+      "result": "confirmed_absent",
+      "evidence": "Command exited 0: ",
+      "verified_by": "codex:gpt-5"
     },
     {
       "invariant_id": "NI-002",
       "description": "View/procedure hardening must not enable server-only MariaDB baggage.",
-      "evidence": "docs/sql-dialect.md; src/lib.zig feature policy tests",
-      "pass_fail": "pass"
+      "verification_method": "custom_command",
+      "verification_command": "zig build test --summary none",
+      "result": "confirmed_absent",
+      "evidence": "Command exited 0: ",
+      "verified_by": "codex:gpt-5"
     }
   ]
 }
