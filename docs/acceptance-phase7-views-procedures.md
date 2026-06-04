@@ -81,7 +81,7 @@ daemon lifecycle commands.
 
 ## Acceptance Notes
 
-No code or validation blockers remain for Phase 7. The formal `spec-kitty
-accept --no-commit` gate is still blocked by the known protected-main /
-mission-branch workflow mismatch, and the Phase 7-specific evidence was added
-to `docs/spec-kitty-system-notes.md`.
+No code or validation blockers remain for Phase 7. Formal `spec-kitty accept
+--mode local --lenient --no-commit --json` passed on the repaired mission
+branch at 2026-06-04T23:52:06Z with WP01-WP05 in `done`, no failed checks,
+and only optional artifact warnings.
