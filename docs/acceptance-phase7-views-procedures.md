@@ -81,7 +81,7 @@ daemon lifecycle commands.
 
 ## Acceptance Notes
 
-No external blockers remain for Phase 7. Repeated Spec Kitty protected-main and
-status-materialization workflow anomalies were already captured in
-`docs/spec-kitty-system-notes.md`; this WP did not introduce a new anomaly
-class.
+No code or validation blockers remain for Phase 7. The formal `spec-kitty
+accept --no-commit` gate is still blocked by the known protected-main /
+mission-branch workflow mismatch, and the Phase 7-specific evidence was added
+to `docs/spec-kitty-system-notes.md`.
