@@ -67,3 +67,4 @@ view reference behavior into adapted fixture coverage.
 
 - 2026-06-04T18:18:50Z – codex:gpt-5:implementer-ivan:implementer – Moved to for_review
 - 2026-06-04T18:19:28Z – codex:gpt-5:implementer-ivan:implementer – WP02 review passed: executable view bodies persist through snapshot reopen, rich adapted view fixture executes, and full validation is green.
+- 2026-06-04T18:19:52Z – codex:gpt-5:implementer-ivan:implementer – Done override: Local Spec Kitty implementation landed directly on main; approval metadata and validation commits are present without a separate merge commit.
