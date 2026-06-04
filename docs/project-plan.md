@@ -1,17 +1,17 @@
 # ShovelerDB Project Plan
 
 Current roadmap position: the MVP SQL/vector memory kernel mission completed on
-2026-06-01, and the MySQL-style syntax-completion mission completed on
-2026-06-02. The first Phase 6 MVCC slice also completed on 2026-06-02.
-ShovelerDB now has a Zig library/CLI, SQL policy and parser, in-memory row
-storage, transaction sessions, basic DDL/DML execution, joins, CTEs, derived
-tables, grouping/aggregates, constrained views and procedures, vector
+2026-06-01, the MySQL-style syntax-completion mission completed on 2026-06-02,
+the scalable concurrency mission completed on 2026-06-02, and Phase 7 views and
+procedures hardening completed on 2026-06-04. ShovelerDB now has a Zig
+library/CLI, SQL policy and parser, in-memory row storage, transaction
+sessions, basic DDL/DML execution, joins, CTEs, derived tables,
+grouping/aggregates, constrained persistent views and procedures, vector
 values/helpers, SQL vector ranking, snapshot persistence, stable reader
 snapshots, ordered writer commits, adapted fixture descriptors, CLI smokes, and
 benchmark coverage. The active follow-up mission is
-`phase6-scalable-concurrency-01KT53SK`, which finishes the remaining Phase 6
-concurrency shape with cheap snapshots, backpressure, checkpoint coordination,
-vector overlay semantics, and stress coverage.
+`phase8-performance-discipline-01KT9RHT`, which turns the existing benchmark
+surface into a disciplined performance and regression practice.
 
 ## Phase 0: Repository Foundation
 
@@ -156,9 +156,11 @@ Exit criteria:
 
 ## Phase 7: Views and Procedures
 
-Status: partially complete; simple views and constrained procedure control flow
-work, while richer view expansion and unsupported stored-program surfaces remain
-classified through the active syntax-completion mission.
+Status: complete for the constrained embedded subset. Rich views over the
+supported `SELECT` surface execute and persist through snapshot reopen.
+Constrained procedures execute through caller sessions and transactions, and
+unsupported stored-program surfaces reject with stable diagnostics and no
+partial procedure catalog entries.
 
 Goal: support reusable schema logic without reintroducing server baggage.
 
@@ -168,15 +170,19 @@ Tasks:
 - `CREATE PROCEDURE` and `CALL`.
 - Procedure variables, `IF`, `WHILE`, and SQL statements in bodies.
 - Procedure transaction behavior.
+- Stable diagnostics for unsupported view/procedure shapes.
+- Adapted view/procedure fixture execution through MTR-lite.
 
 Exit criteria:
 
-- A practical subset of MariaDB view and stored procedure tests is passing or
-  classified.
+- `docs/acceptance-phase7-views-procedures.md` maps every Phase 7 requirement
+  to tests, fixtures, docs, and CLI validation.
+- The accepted MariaDB-like view/procedure subset is passing or explicitly
+  classified as rejected/deferred.
 
 ## Phase 8: Performance Discipline
 
-Status: started.
+Status: started; mission `phase8-performance-discipline-01KT9RHT` is planned.
 
 Goal: make speed measurable from the beginning.
 

@@ -85,9 +85,9 @@ evidence.
 **Requirement Refs**: FR-009, FR-010, FR-011, FR-012  
 **Dependencies**: WP01, WP02, WP03, WP04
 
-- [ ] T013 Update Phase 7 roadmap and dialect docs.
-- [ ] T014 Add Phase 7 acceptance evidence document.
-- [ ] T015 Run full validation and close integration gaps.
+- [x] T013 Update Phase 7 roadmap and dialect docs.
+- [x] T014 Add Phase 7 acceptance evidence document.
+- [x] T015 Run full validation and close integration gaps.
 
 ## Acceptance Handoff
 
