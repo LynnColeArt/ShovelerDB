@@ -30,6 +30,7 @@ tags:
 - phase7
 - procedures
 - diagnostics
+agent: "codex:gpt-5:implementer-ivan:implementer"
 ---
 
 # Work Package Prompt: WP04 - Procedure Diagnostics and Body Hardening
@@ -54,3 +55,7 @@ for unsupported stored-program features.
 - Procedure body diagnostics are stable and covered.
 - Unsupported stored-program syntax remains rejected before partial execution.
 - `zig build test` passes.
+
+## Activity Log
+
+- 2026-06-04T18:28:38Z – codex:gpt-5:implementer-ivan:implementer – WP04 implementation: added procedure diagnostics acceptance coverage, expanded procedure-body rejection cases, fixed unsupported SQL statement rejection ownership, and proved rejected creates leave procedure names reusable. Validation: zig build test; procedure-control-flow fixture smoke; zig fmt --check; git diff --check.
