@@ -66,3 +66,5 @@ view lifecycle failures deterministic.
 ## Activity Log
 
 - 2026-06-04T18:09:21Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=3492934 – Implemented WP01 acceptance coverage for rich view expansion, alias metadata, and lifecycle diagnostics. Validation: zig build test, zig fmt --check build.zig tests/integration/view_acceptance.zig, git diff --check.
+- 2026-06-04T18:10:18Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=3492934 – Review passed: WP01 is a test/build-only hardening slice. Validation: zig build test; zig fmt --check build.zig tests/integration/view_acceptance.zig; git diff --check.
+- 2026-06-04T18:10:28Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=3492934 – WP01 done after focused self-review and green validation. Implementation commit: 409281d. | Done override: WP01 implementation and review metadata are already committed directly on main in this interactive continuation; no separate lane merge is pending.
