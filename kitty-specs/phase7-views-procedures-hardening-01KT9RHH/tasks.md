@@ -63,9 +63,9 @@ evidence.
 **Requirement Refs**: FR-005, FR-006, FR-007, FR-011, FR-012  
 **Dependencies**: none
 
-- [ ] T007 Harden procedure CALL argument binding.
-- [ ] T008 Prove procedure writes share caller transaction semantics.
-- [ ] T009 Add procedure rollback/commit integration coverage.
+- [x] T007 Harden procedure CALL argument binding.
+- [x] T008 Prove procedure writes share caller transaction semantics.
+- [x] T009 Add procedure rollback/commit integration coverage.
 
 ### WP04 - Procedure Diagnostics and Body Hardening
 
