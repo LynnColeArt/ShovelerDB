@@ -29,6 +29,8 @@ role: implementer
 tags:
 - phase7
 - views
+agent: "codex:gpt-5:implementer-ivan:implementer"
+shell_pid: "3492934"
 ---
 
 # Work Package Prompt: WP01 - View Expansion and Lifecycle Diagnostics
@@ -60,3 +62,7 @@ view lifecycle failures deterministic.
 - Existing query-source, aggregate, vector, procedure, persistence, and
   concurrency tests still pass.
 - `zig build test` passes.
+
+## Activity Log
+
+- 2026-06-04T18:09:21Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=3492934 – Implemented WP01 acceptance coverage for rich view expansion, alias metadata, and lifecycle diagnostics. Validation: zig build test, zig fmt --check build.zig tests/integration/view_acceptance.zig, git diff --check.
