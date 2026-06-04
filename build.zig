@@ -35,6 +35,14 @@ pub fn build(b: *std.Build) void {
             .{ .name = "shovelerdb", .module = lib_module },
         },
     });
+    const view_integration_module = b.createModule(.{
+        .root_source_file = b.path("tests/integration/view_acceptance.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "shovelerdb", .module = lib_module },
+        },
+    });
     const aggregate_integration_module = b.createModule(.{
         .root_source_file = b.path("tests/integration/aggregate_acceptance.zig"),
         .target = target,
@@ -136,6 +144,9 @@ pub fn build(b: *std.Build) void {
     const query_source_integration_tests = b.addTest(.{
         .root_module = query_source_integration_module,
     });
+    const view_integration_tests = b.addTest(.{
+        .root_module = view_integration_module,
+    });
     const aggregate_integration_tests = b.addTest(.{
         .root_module = aggregate_integration_module,
     });
@@ -168,6 +179,7 @@ pub fn build(b: *std.Build) void {
     const run_exe_tests = b.addRunArtifact(exe_tests);
     const run_integration_tests = b.addRunArtifact(integration_tests);
     const run_query_source_integration_tests = b.addRunArtifact(query_source_integration_tests);
+    const run_view_integration_tests = b.addRunArtifact(view_integration_tests);
     const run_aggregate_integration_tests = b.addRunArtifact(aggregate_integration_tests);
     const run_ddl_integration_tests = b.addRunArtifact(ddl_integration_tests);
     const run_procedure_integration_tests = b.addRunArtifact(procedure_integration_tests);
@@ -182,6 +194,7 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_exe_tests.step);
     test_step.dependOn(&run_integration_tests.step);
     test_step.dependOn(&run_query_source_integration_tests.step);
+    test_step.dependOn(&run_view_integration_tests.step);
     test_step.dependOn(&run_aggregate_integration_tests.step);
     test_step.dependOn(&run_ddl_integration_tests.step);
     test_step.dependOn(&run_procedure_integration_tests.step);

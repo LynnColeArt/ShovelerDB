@@ -41,9 +41,9 @@ evidence.
 **Requirement Refs**: FR-001, FR-002, FR-003, FR-011, FR-012  
 **Dependencies**: none
 
-- [ ] T001 Harden rich view expansion through the row-source executor.
-- [ ] T002 Add view result metadata and lifecycle diagnostics.
-- [ ] T003 Add view lifecycle integration coverage.
+- [x] T001 Harden rich view expansion through the row-source executor.
+- [x] T002 Add view result metadata and lifecycle diagnostics.
+- [x] T003 Add view lifecycle integration coverage.
 
 ### WP02 - View Persistence and Fixture Coverage
 
