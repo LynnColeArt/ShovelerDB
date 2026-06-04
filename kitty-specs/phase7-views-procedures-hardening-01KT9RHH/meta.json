@@ -1,0 +1,13 @@
+{
+  "coordination_branch": "kitty/mission-phase7-views-procedures-hardening-01KT9RHH",
+  "created_at": "2026-06-04T16:47:55.052696+00:00",
+  "friendly_name": "phase7 views procedures hardening",
+  "mission_id": "01KT9RHHNCJPDGYWQ5EK3GH8TK",
+  "mission_number": null,
+  "mission_slug": "phase7-views-procedures-hardening-01KT9RHH",
+  "mission_type": "software-dev",
+  "purpose_context": "This mission advances phase7 views procedures hardening on main so stakeholders can track the work from mission creation onward.",
+  "purpose_tldr": "phase7 views procedures hardening",
+  "slug": "phase7-views-procedures-hardening-01KT9RHH",
+  "target_branch": "main"
+}
