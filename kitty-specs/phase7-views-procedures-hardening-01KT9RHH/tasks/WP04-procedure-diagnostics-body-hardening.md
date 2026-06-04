@@ -60,3 +60,4 @@ for unsupported stored-program features.
 
 - 2026-06-04T18:28:38Z – codex:gpt-5:implementer-ivan:implementer – WP04 implementation: added procedure diagnostics acceptance coverage, expanded procedure-body rejection cases, fixed unsupported SQL statement rejection ownership, and proved rejected creates leave procedure names reusable. Validation: zig build test; procedure-control-flow fixture smoke; zig fmt --check; git diff --check.
 - 2026-06-04T18:28:58Z – codex:gpt-5:implementer-ivan:implementer – WP04 review passed: unsupported procedure surfaces reject cleanly, rejected creates leave no partial catalog entries, loop cap diagnostics are stable, and the ownership fix is covered.
+- 2026-06-04T18:29:22Z – codex:gpt-5:implementer-ivan:implementer – Done override: Local Spec Kitty implementation landed directly on main; approval metadata and validation commits are present without a separate merge commit.
