@@ -74,9 +74,9 @@ evidence.
 **Requirement Refs**: FR-007, FR-008, FR-011, FR-012  
 **Dependencies**: WP03
 
-- [ ] T010 Harden procedure body diagnostics and loop guard behavior.
-- [ ] T011 Preserve unsupported stored-program rejection coverage.
-- [ ] T012 Prove no partial catalog mutation for rejected procedure bodies.
+- [x] T010 Harden procedure body diagnostics and loop guard behavior.
+- [x] T011 Preserve unsupported stored-program rejection coverage.
+- [x] T012 Prove no partial catalog mutation for rejected procedure bodies.
 
 ### WP05 - Phase 7 Acceptance and Roadmap Refresh
 

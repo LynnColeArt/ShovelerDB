@@ -83,6 +83,14 @@ pub fn build(b: *std.Build) void {
             .{ .name = "shovelerdb", .module = lib_module },
         },
     });
+    const procedure_diagnostics_integration_module = b.createModule(.{
+        .root_source_file = b.path("tests/integration/procedure_diagnostics_acceptance.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "shovelerdb", .module = lib_module },
+        },
+    });
     const concurrency_contract_integration_module = b.createModule(.{
         .root_source_file = b.path("tests/integration/concurrency_contract_acceptance.zig"),
         .target = target,
@@ -178,6 +186,9 @@ pub fn build(b: *std.Build) void {
     const procedure_transaction_integration_tests = b.addTest(.{
         .root_module = procedure_transaction_integration_module,
     });
+    const procedure_diagnostics_integration_tests = b.addTest(.{
+        .root_module = procedure_diagnostics_integration_module,
+    });
     const concurrency_contract_integration_tests = b.addTest(.{
         .root_module = concurrency_contract_integration_module,
     });
@@ -207,6 +218,7 @@ pub fn build(b: *std.Build) void {
     const run_ddl_integration_tests = b.addRunArtifact(ddl_integration_tests);
     const run_procedure_integration_tests = b.addRunArtifact(procedure_integration_tests);
     const run_procedure_transaction_integration_tests = b.addRunArtifact(procedure_transaction_integration_tests);
+    const run_procedure_diagnostics_integration_tests = b.addRunArtifact(procedure_diagnostics_integration_tests);
     const run_concurrency_contract_integration_tests = b.addRunArtifact(concurrency_contract_integration_tests);
     const run_snapshot_generation_integration_tests = b.addRunArtifact(snapshot_generation_integration_tests);
     const run_commit_queue_integration_tests = b.addRunArtifact(commit_queue_integration_tests);
@@ -224,6 +236,7 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_ddl_integration_tests.step);
     test_step.dependOn(&run_procedure_integration_tests.step);
     test_step.dependOn(&run_procedure_transaction_integration_tests.step);
+    test_step.dependOn(&run_procedure_diagnostics_integration_tests.step);
     test_step.dependOn(&run_concurrency_contract_integration_tests.step);
     test_step.dependOn(&run_snapshot_generation_integration_tests.step);
     test_step.dependOn(&run_commit_queue_integration_tests.step);
