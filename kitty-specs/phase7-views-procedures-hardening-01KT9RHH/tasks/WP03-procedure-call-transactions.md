@@ -29,6 +29,7 @@ role: implementer
 tags:
 - phase7
 - procedures
+agent: "codex:gpt-5:implementer-ivan:implementer"
 ---
 
 # Work Package Prompt: WP03 - Procedure Call and Transaction Semantics
@@ -56,3 +57,7 @@ visibility, rollback behavior, and stable call diagnostics.
 - Bad `CALL` shapes return stable diagnostics.
 - Existing procedure acceptance tests still pass.
 - `zig build test` passes.
+
+## Activity Log
+
+- 2026-06-04T18:23:15Z – codex:gpt-5:implementer-ivan:implementer – WP03 implementation: added procedure transaction acceptance coverage for commit, rollback, caller visibility, and CALL diagnostics. Validation: zig build test; procedure-control-flow fixture smoke; zig fmt --check; git diff --check.
