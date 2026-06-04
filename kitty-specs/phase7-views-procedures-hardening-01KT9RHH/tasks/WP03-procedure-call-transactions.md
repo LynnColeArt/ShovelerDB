@@ -61,3 +61,4 @@ visibility, rollback behavior, and stable call diagnostics.
 ## Activity Log
 
 - 2026-06-04T18:23:15Z – codex:gpt-5:implementer-ivan:implementer – WP03 implementation: added procedure transaction acceptance coverage for commit, rollback, caller visibility, and CALL diagnostics. Validation: zig build test; procedure-control-flow fixture smoke; zig fmt --check; git diff --check.
+- 2026-06-04T18:23:36Z – codex:gpt-5:implementer-ivan:implementer – WP03 review passed: procedure transaction coverage proves caller visibility, commit durability, rollback discard, and stable CALL diagnostics.
