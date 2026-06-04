@@ -310,11 +310,13 @@ pub const DeleteStatement = struct {
 pub const CreateViewStatement = struct {
     name: []const u8,
     query: *SelectStatement,
+    body_sql: []const u8,
 
     pub fn deinit(self: CreateViewStatement, allocator: std.mem.Allocator) void {
         allocator.free(self.name);
         self.query.deinit(allocator);
         allocator.destroy(self.query);
+        allocator.free(self.body_sql);
     }
 };
 

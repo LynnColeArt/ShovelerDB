@@ -30,6 +30,12 @@ test "adapted MariaDB syntax fixtures execute through MTR-lite" {
             .min_statements = 11,
             .expected_errors = 1,
         },
+        .{
+            .name = "view-rich",
+            .contents = @embedFile("fixtures/mariadb-adapted/view-rich.md"),
+            .min_statements = 12,
+            .expected_errors = 0,
+        },
     };
 
     for (fixtures) |fixture| {

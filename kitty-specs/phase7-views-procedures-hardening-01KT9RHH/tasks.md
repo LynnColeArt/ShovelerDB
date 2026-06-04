@@ -52,9 +52,9 @@ evidence.
 **Requirement Refs**: FR-001, FR-004, FR-009, FR-010, FR-011, FR-012  
 **Dependencies**: WP01
 
-- [ ] T004 Prove persisted snapshots reopen executable views.
-- [ ] T005 Promote richer view adapted fixture coverage.
-- [ ] T006 Refresh view-related reference notes.
+- [x] T004 Prove persisted snapshots reopen executable views.
+- [x] T005 Promote richer view adapted fixture coverage.
+- [x] T006 Refresh view-related reference notes.
 
 ### WP03 - Procedure Call and Transaction Semantics
 

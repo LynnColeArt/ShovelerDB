@@ -763,11 +763,18 @@ const Parser = struct {
         const name = try self.expectIdentifierOwned("view name");
         errdefer self.allocator.free(name);
         try self.expectKeyword("AS");
+        const select_token = self.peek() orelse return self.failEnd("SELECT");
         try self.expectKeyword("SELECT");
+        const body_start = select_token.offset;
         const query = try self.allocator.create(ast.SelectStatement);
         errdefer self.allocator.destroy(query);
         query.* = try self.parseSelectAfterSelect();
-        return .{ .name = name, .query = query };
+        const body_end = if (self.peek()) |token| token.offset else self.sql.len;
+        const body_sql = try self.allocator.dupe(
+            u8,
+            std.mem.trim(u8, self.sql[body_start..body_end], &std.ascii.whitespace),
+        );
+        return .{ .name = name, .query = query, .body_sql = body_sql };
     }
 
     fn parseCreateProcedure(self: *Parser) ParseError!ast.ProcedureStatement {
@@ -1455,6 +1462,7 @@ test "parser parses view procedure and call statements" {
     const view = try parse(allocator, "CREATE VIEW recent AS SELECT * FROM memories LIMIT 10;");
     defer view.deinit(allocator);
     try std.testing.expectEqualStrings("recent", view.statement.create_view.name);
+    try std.testing.expectEqualStrings("SELECT * FROM memories LIMIT 10", view.statement.create_view.body_sql);
 
     const procedure = try parse(
         allocator,

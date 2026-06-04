@@ -728,6 +728,7 @@ test "snapshot write and reopen preserves catalog and committed rows" {
     try std.testing.expectEqualStrings("PRIMARY", table.indexes[0].name);
     try std.testing.expectEqualStrings("idx_body", table.indexes[1].name);
     try std.testing.expectEqual(@as(usize, 1), reopened.catalog.listViews().len);
+    try std.testing.expectEqualStrings("SELECT body FROM memories", reopened.catalog.listViews()[0].body);
     try std.testing.expectEqual(@as(usize, 1), reopened.catalog.listProcedures().len);
 
     const store = reopened.storeForTableConst("memories").?;
