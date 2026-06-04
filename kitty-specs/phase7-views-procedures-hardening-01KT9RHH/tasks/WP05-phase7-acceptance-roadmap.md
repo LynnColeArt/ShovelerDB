@@ -63,3 +63,4 @@ Close Phase 7 with truthful docs, acceptance evidence, and full validation.
 
 - 2026-06-04T18:33:53Z – codex:gpt-5:implementer-ivan:implementer – WP05 implementation: added Phase 7 acceptance evidence, refreshed roadmap/dialect docs, populated acceptance matrix, and reran full validation. Validation: zig build test; view/procedure MTR-lite fixtures; parse/execute CLI smokes; benchmark smoke; jq acceptance matrix; git diff --check.
 - 2026-06-04T18:34:17Z – codex:gpt-5:implementer-ivan:implementer – WP05 review passed: Phase 7 FRs are mapped to evidence, roadmap/dialect docs are truthful, acceptance matrix is populated, and final validation is green.
+- 2026-06-04T18:34:43Z – codex:gpt-5:implementer-ivan:implementer – Done override: Local Spec Kitty implementation landed directly on main; approval metadata and validation commits are present without a separate merge commit.

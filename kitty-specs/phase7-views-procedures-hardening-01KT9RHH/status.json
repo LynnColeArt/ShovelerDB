@@ -1,7 +1,7 @@
 {
-  "event_count": 15,
-  "last_event_id": "01KT9YAJGJG4YKME0AE09J9ZMT",
-  "materialized_at": "2026-06-04T18:29:35+00:00",
+  "event_count": 16,
+  "last_event_id": "01KT9YMADG9TA6APFVT0X2V42C",
+  "materialized_at": "2026-06-04T18:35:01+00:00",
   "mission_number": "",
   "mission_slug": "phase7-views-procedures-hardening-01KT9RHH",
   "mission_type": "software-dev",
@@ -10,11 +10,11 @@
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 4,
+    "done": 5,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
-    "planned": 1
+    "planned": 0
   },
   "work_packages": {
     "WP01": {
@@ -46,11 +46,11 @@
       "last_transition_at": "2026-06-04T18:29:22+00:00"
     },
     "WP05": {
-      "actor": "spec-kitty agent mission finalize-tasks",
-      "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KT9RYQ04053DZ9MKJ5M2CR52",
-      "last_transition_at": "2026-06-04T16:55:06.500507+00:00"
+      "actor": "codex:gpt-5:implementer-ivan:implementer",
+      "force_count": 1,
+      "lane": "done",
+      "last_event_id": "01KT9YMADG9TA6APFVT0X2V42C",
+      "last_transition_at": "2026-06-04T18:34:43+00:00"
     }
   }
 }
