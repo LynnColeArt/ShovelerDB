@@ -34,6 +34,8 @@ tags:
 - phase9
 - acceptance
 - connectors
+assignee: "codex:gpt-5:implementer-ivan:implementer"
+agent: "codex:gpt-5:implementer-ivan:implementer"
 ---
 
 # Work Package Prompt: WP05 - Connector Fixture Handoff and Acceptance
@@ -60,3 +62,7 @@ mission.
 - Connector fixture docs can guide the next language binding mission.
 - Phase 9 acceptance doc maps all FRs to evidence.
 - Full validation passes.
+
+## Activity Log
+
+- 2026-06-05T03:02:36Z – codex:gpt-5:implementer-ivan:implementer – Moved to in_progress
