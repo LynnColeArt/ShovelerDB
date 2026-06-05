@@ -63,9 +63,9 @@ packages remain follow-up missions.
 **Requirement Refs**: FR-005, FR-006, FR-010  
 **Dependencies**: WP01, WP02
 
-- [ ] T007 Add result metadata and row/value iteration helpers.
-- [ ] T008 Expose scalar, text/blob, and vector value accessors tied to result lifetime.
-- [ ] T009 Add explicit result/string release behavior and lifecycle tests.
+- [x] T007 Add result metadata and row/value iteration helpers.
+- [x] T008 Expose scalar, text/blob, and vector value accessors tied to result lifetime.
+- [x] T009 Add explicit result/string release behavior and lifecycle tests.
 
 ### WP04 - Diagnostics and ABI Acceptance Smoke
 
