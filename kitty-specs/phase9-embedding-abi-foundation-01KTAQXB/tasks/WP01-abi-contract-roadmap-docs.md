@@ -30,8 +30,6 @@ tags:
 - phase9
 - abi
 - docs
-agent: "codex:gpt-5:reviewer-riley:reviewer"
-shell_pid: "3361848"
 ---
 
 # Work Package Prompt: WP01 - ABI Contract and Roadmap Docs
@@ -58,7 +56,3 @@ the public roadmap truthful about Phase 9 being active for ABI foundation work.
 - Docs preserve the no-server, no-replication, no-plugin product boundary.
 - Roadmap clearly says full language connectors are follow-up work.
 - `zig build test` passes.
-
-## Activity Log
-
-- 2026-06-05T02:12:49Z – codex:gpt-5:reviewer-riley:reviewer – shell_pid=3361848 – Started review via action command
