@@ -52,9 +52,9 @@ product hot-path metrics, warn-only baselines, and acceptance evidence.
 **Requirement Refs**: FR-004, FR-009, FR-012  
 **Dependencies**: WP01
 
-- [ ] T004 Add explicit allocation measurement helpers.
-- [ ] T005 Attach allocation counts/bytes to benchmark metrics.
-- [ ] T006 Add benchmark output shape tests.
+- [x] T004 Add explicit allocation measurement helpers.
+- [x] T005 Attach allocation counts/bytes to benchmark metrics.
+- [x] T006 Add benchmark output shape tests.
 
 ### WP03 - Missing Workload Metrics
 
