@@ -22,6 +22,8 @@ agent_profile: implementer-ivan
 authoritative_surface: src/abi/result.zig
 execution_mode: code_change
 owned_files:
+- docs/embedding-abi.md
+- include/shovelerdb.h
 - src/abi/c_api.zig
 - src/abi/handles.zig
 - src/abi/result.zig
