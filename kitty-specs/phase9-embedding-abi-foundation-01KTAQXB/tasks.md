@@ -52,9 +52,9 @@ packages remain follow-up missions.
 **Requirement Refs**: FR-003, FR-004, FR-006, FR-010  
 **Dependencies**: WP01
 
-- [ ] T004 Add ABI handle types and open-or-create/close/checkpoint functions.
-- [ ] T005 Bridge ABI SQL execution to the existing executor/persistence surfaces.
-- [ ] T006 Wire ABI modules into the public Zig library surface.
+- [x] T004 Add ABI handle types and open-or-create/close/checkpoint functions.
+- [x] T005 Bridge ABI SQL execution to the existing executor/persistence surfaces.
+- [x] T006 Wire ABI modules into the public Zig library surface.
 
 ### WP03 - Result Iteration and Value Access
 
