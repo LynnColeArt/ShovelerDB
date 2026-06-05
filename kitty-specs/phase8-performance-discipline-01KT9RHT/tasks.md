@@ -75,9 +75,9 @@ product hot-path metrics, warn-only baselines, and acceptance evidence.
 **Requirement Refs**: FR-001, FR-010, FR-011, FR-012  
 **Dependencies**: WP01, WP02, WP03
 
-- [ ] T011 Add benchmark methodology docs.
-- [ ] T012 Add warn-only baseline or threshold artifact.
-- [ ] T013 Refresh roadmap performance status.
+- [x] T011 Add benchmark methodology docs.
+- [x] T012 Add warn-only baseline or threshold artifact.
+- [x] T013 Refresh roadmap performance status.
 
 ### WP05 - Phase 8 Acceptance
 
