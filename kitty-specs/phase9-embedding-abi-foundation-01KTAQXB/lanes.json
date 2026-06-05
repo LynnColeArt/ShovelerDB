@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "mission_slug": "phase9-embedding-abi-foundation-01KTAQXB",
+  "mission_id": "01KTAQXBMAQSE0TSXWYF7YXJ5Z",
+  "mission_branch": "kitty/mission-phase9-embedding-abi-foundation-01KTAQXB",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "README.md",
+        "docs/embedding-abi.md",
+        "docs/project-plan.md",
+        "include/shovelerdb.h"
+      ],
+      "predicted_surfaces": [],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "src/abi/c_api.zig",
+        "src/abi/handles.zig",
+        "src/lib.zig"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "src/abi/result.zig",
+        "src/abi/value_access.zig"
+      ],
+      "predicted_surfaces": [],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "build.zig",
+        "src/abi/diagnostics.zig",
+        "tests/integration/abi_acceptance.zig"
+      ],
+      "predicted_surfaces": [
+        "legacy-cleanup",
+        "tests"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b",
+        "lane-c"
+      ],
+      "parallel_group": 3
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "docs/acceptance-phase9-embedding-abi.md",
+        "docs/connector-fixtures.md",
+        "docs/spec-kitty-system-notes.md"
+      ],
+      "predicted_surfaces": [],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b",
+        "lane-c",
+        "lane-d"
+      ],
+      "parallel_group": 4
+    }
+  ],
+  "computed_at": "2026-06-05T02:00:53.885089+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
