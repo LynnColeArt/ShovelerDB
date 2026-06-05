@@ -30,9 +30,6 @@ tags:
 - phase9
 - abi
 - docs
-assignee: "codex:gpt-5:implementer-ivan:implementer"
-agent: "codex:gpt-5:reviewer-riley:reviewer"
-shell_pid: "3361848"
 ---
 
 # Work Package Prompt: WP01 - ABI Contract and Roadmap Docs
@@ -59,9 +56,3 @@ the public roadmap truthful about Phase 9 being active for ABI foundation work.
 - Docs preserve the no-server, no-replication, no-plugin product boundary.
 - Roadmap clearly says full language connectors are follow-up work.
 - `zig build test` passes.
-
-## Activity Log
-
-- 2026-06-05T02:10:17Z – codex:gpt-5:implementer-ivan:implementer – WP01 implementation started on lane-a after protected-main workspace recovery.
-- 2026-06-05T02:10:49Z – codex:gpt-5:implementer-ivan:implementer – Implementation commit 92afadb defines docs/embedding-abi.md, include/shovelerdb.h, and roadmap status updates; zig build test and C99 header syntax check pass.
-- 2026-06-05T02:11:22Z – codex:gpt-5:reviewer-riley:reviewer – shell_pid=3361848 – Started review via action command
