@@ -63,10 +63,10 @@ product hot-path metrics, warn-only baselines, and acceptance evidence.
 **Requirement Refs**: FR-005, FR-006, FR-007, FR-008, FR-009, FR-012  
 **Dependencies**: WP01, WP02
 
-- [ ] T007 Add point lookup benchmark metric.
-- [ ] T008 Add hybrid filter/vector ranking metric.
-- [ ] T009 Add persistence checkpoint/reopen benchmark smoke.
-- [ ] T010 Preserve and validate Phase 6 concurrency metrics.
+- [x] T007 Add point lookup benchmark metric.
+- [x] T008 Add hybrid filter/vector ranking metric.
+- [x] T009 Add persistence checkpoint/reopen benchmark smoke.
+- [x] T010 Preserve and validate Phase 6 concurrency metrics.
 
 ### WP04 - Methodology and Warn-Only Baselines
 
