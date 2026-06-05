@@ -94,7 +94,7 @@ Connectors inspect result metadata before iterating:
 
 - `shovelerdb_result_column_count`
 - `shovelerdb_result_column_name`
-- `shovelerdb_result_kind`
+- `shovelerdb_result_kind_of`
 - `shovelerdb_result_mutation_count`
 
 Rows are read with `shovelerdb_result_next(result, &row)`. The function returns
