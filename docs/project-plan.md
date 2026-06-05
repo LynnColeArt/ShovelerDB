@@ -11,7 +11,7 @@ values/helpers, SQL vector ranking, snapshot persistence, stable reader
 snapshots, ordered writer commits, adapted fixture descriptors, CLI smokes, and
 benchmark coverage. The active follow-up mission is
 `phase8-performance-discipline-01KT9RHT`, which turns the existing benchmark
-surface into a disciplined performance and regression practice.
+surface into a documented, structured, allocation-aware performance practice.
 
 ## Phase 0: Repository Foundation
 
@@ -182,22 +182,32 @@ Exit criteria:
 
 ## Phase 8: Performance Discipline
 
-Status: started; mission `phase8-performance-discipline-01KT9RHT` is planned.
+Status: in progress; mission `phase8-performance-discipline-01KT9RHT` has
+added stable benchmark presets, JSON output, allocation visibility, missing
+hot-path workload metrics, and warn-only baseline guidance. Hard timing gates
+remain deferred until benchmark variance is understood on stable CI hardware.
 
 Goal: make speed measurable from the beginning.
 
 Tasks:
 
-- Add benchmark harness.
-- Track allocation counts in hot paths.
-- Benchmark insert, point lookup, scan, transaction commit, vector top-k, and
-  hybrid filter/vector queries.
-- Add regression thresholds once the engine stabilizes.
+- Preserve the benchmark harness as a documented developer and acceptance
+  workflow.
+- Track allocation counts and bytes in hot paths.
+- Benchmark insert, point lookup, scan, grouped scan, joined filter,
+  rollback, vector top-k, SQL vector ranking, hybrid filter/vector ranking,
+  persistence checkpoint/reopen, and Phase 6 concurrency paths.
+- Maintain `docs/performance-baselines.json` as warn-only guidance until hard
+  regression thresholds are trustworthy.
 
 Exit criteria:
 
-- Every major feature lands with a benchmark.
-- Performance regressions are visible in CI.
+- `docs/performance.md` explains local and acceptance benchmark methodology.
+- `docs/performance-baselines.json` records warn-only preset expectations.
+- Benchmark JSON output is stable enough for automation to compare metric
+  names, counts, timing, throughput, and allocation fields.
+- Performance regressions are visible as warnings before they become hard CI
+  gates.
 
 ## Phase 9: Language Connectors and Embedding SDKs
 

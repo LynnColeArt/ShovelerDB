@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "mode": "warn-only",
+  "updated_at": "2026-06-05",
+  "purpose": "Document stable benchmark preset expectations without creating hard timing gates.",
+  "commands": {
+    "local_smoke": "zig build run -- benchmark --preset local-smoke --format json",
+    "acceptance_smoke": "zig build run -- benchmark --preset acceptance-smoke --format json"
+  },
+  "policy": {
+    "hard_ci_gate": false,
+    "warn_on_missing_metric": true,
+    "warn_on_count_mismatch": true,
+    "warn_on_elapsed_delta_percent": 50,
+    "warn_on_allocation_count_delta_percent": 25,
+    "warn_on_allocation_bytes_delta_percent": 25,
+    "minimum_repeated_samples_before_hard_gate": 10,
+    "notes": "Elapsed-time and allocation deltas are advisory until CI hardware and benchmark variance are understood."
+  },
+  "presets": {
+    "local-smoke": {
+      "config": {
+        "rows": 1000,
+        "vectors": 256,
+        "dimensions": 16,
+        "operations": 100
+      },
+      "metrics": {
+        "insert_commit": 1000,
+        "select_scan": 1000,
+        "grouped_scan": 1000,
+        "joined_filter": 1000,
+        "point_lookup": 100,
+        "rollback_updates": 100,
+        "exact_vector_scan": 256,
+        "sql_vector_rank": 256,
+        "hybrid_filter_vector_rank": 256,
+        "persistence_checkpoint_reopen": 64,
+        "snapshot_begin": 100,
+        "queued_commit": 100,
+        "concurrent_read_write": 100,
+        "checkpoint_overlap": 100,
+        "vector_overlay_visibility": 100
+      }
+    },
+    "acceptance-smoke": {
+      "config": {
+        "rows": 2000,
+        "vectors": 512,
+        "dimensions": 32,
+        "operations": 200
+      },
+      "metrics": {
+        "insert_commit": 2000,
+        "select_scan": 2000,
+        "grouped_scan": 2000,
+        "joined_filter": 2000,
+        "point_lookup": 200,
+        "rollback_updates": 200,
+        "exact_vector_scan": 512,
+        "sql_vector_rank": 512,
+        "hybrid_filter_vector_rank": 512,
+        "persistence_checkpoint_reopen": 64,
+        "snapshot_begin": 200,
+        "queued_commit": 200,
+        "concurrent_read_write": 200,
+        "checkpoint_overlap": 200,
+        "vector_overlay_visibility": 200
+      }
+    }
+  }
+}
