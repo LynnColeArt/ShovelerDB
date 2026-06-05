@@ -41,9 +41,9 @@ product hot-path metrics, warn-only baselines, and acceptance evidence.
 **Requirement Refs**: FR-002, FR-003, FR-008, FR-012  
 **Dependencies**: none
 
-- [ ] T001 Add benchmark preset option model.
-- [ ] T002 Add structured benchmark metric schema and JSON output.
-- [ ] T003 Preserve current human-readable benchmark output.
+- [x] T001 Add benchmark preset option model.
+- [x] T002 Add structured benchmark metric schema and JSON output.
+- [x] T003 Preserve current human-readable benchmark output.
 
 ### WP02 - Allocation Measurement and Output Tests
 
