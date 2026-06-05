@@ -100,6 +100,7 @@ tests/fixtures/mariadb-adapted/query-syntax.md
 tests/fixtures/mariadb-adapted/vector-distance-functions.md
 tests/fixtures/mariadb-adapted/vector-values.md
 tests/fixtures/mariadb-adapted/view-basic.md
+tests/fixtures/mariadb-adapted/view-rich.md
 ```
 
 The classifier output above is unchanged by these descriptors because they do
@@ -119,10 +120,12 @@ zig build run -- run-adapted-test tests/fixtures/mariadb-adapted/vector-distance
 zig build run -- run-adapted-test tests/fixtures/mariadb-adapted/query-syntax.md
 zig build run -- run-adapted-test tests/fixtures/mariadb-adapted/procedure-control-flow.md
 zig build run -- run-adapted-test tests/fixtures/mariadb-adapted/grouping-aggregates.md
+zig build run -- run-adapted-test tests/fixtures/mariadb-adapted/view-rich.md
 ```
 
 `zig build test` also executes the query syntax, procedure control-flow, and
-grouping/aggregate descriptors through MTR-lite.
+grouping/aggregate descriptors through MTR-lite. Phase 7 view persistence
+acceptance covers reopened executable views against the native snapshot format.
 
 The syntax-completion mission is still responsible for final acceptance
 hardening, benchmark refreshes, and any additional fixture promotion needed to

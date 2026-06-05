@@ -14,29 +14,28 @@ and vector workloads.
   `cosine_distance`
 - primary-key-like declarations tolerated as column attributes in the current
   parser surface
-- single-table scans with `WHERE`, `ORDER BY`, and `LIMIT`
-- views over supported `SELECT` statements, with current executor support
-  strongest for simple delegation
+- scans and row sources with `WHERE`, `ORDER BY`, `LIMIT`, CTEs, derived
+  tables, aliases, qualified identifiers, inner/cross/left joins,
+  grouping/aggregates, `GROUP BY`, and `HAVING`
+- views over supported `SELECT` statements, including richer row-source queries
+  and persisted view definitions that remain executable after snapshot reopen
 - constrained stored procedures with `IN` parameters, `DECLARE`, `SET`, `IF`,
   bounded `WHILE`, and supported SQL statements inside `BEGIN ... END`
+- `CALL` execution through the caller session and transaction context, including
+  caller-visible writes, commit durability, rollback discard behavior, and
+  stable diagnostics for missing procedures, argument count, and known type
+  mismatches
 - CLI parse, execute, analyze, classify, and benchmark commands
 
-## Active Syntax-Completion Mission
+## Deferred Or Future Work
 
-The mission `mysql-style-syntax-completion-01KT2G5Z` is responsible for turning
-these design promises into tested executable behavior or explicit deferrals:
-
-- ordinary indexes
-- scalar expressions
-- CTEs
-- derived tables
-- table aliases and qualified identifiers
-- inner/cross/left joins
-- aggregate functions, `GROUP BY`, and `HAVING`
-- richer view expansion
-- vector indexes
-- MySQL-compatible DDL metadata such as `IF EXISTS`, `IF NOT EXISTS`, defaults,
-  nullability, primary keys, and auto-increment metadata
+- secondary-index planner behavior
+- ANN/vector index implementation
+- full MySQL DDL metadata parity
+- `SHOW CREATE VIEW`, `INFORMATION_SCHEMA.VIEWS`, view algorithm clauses,
+  definer/security clauses, and privilege metadata
+- full stored-program parity, including cursors, handlers, recursion, dynamic
+  SQL, routine functions, `OUT`/`INOUT`, packages, and server diagnostics areas
 
 ## Rejected by Design
 

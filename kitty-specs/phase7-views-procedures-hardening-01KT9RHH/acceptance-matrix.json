@@ -1,0 +1,148 @@
+{
+  "mission_slug": "phase7-views-procedures-hardening-01KT9RHH",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Views over supported SELECT statements execute across rich row-source syntax.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/view_acceptance.zig; tests/integration/query_source_acceptance.zig; tests/fixtures/mariadb-adapted/query-syntax.md; tests/fixtures/mariadb-adapted/view-rich.md",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-06-04T18:31:00Z",
+      "notes": "Validated by zig build test and MTR-lite fixture smokes."
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "View result metadata and aliases are stable for outer queries.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/view_acceptance.zig",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-06-04T18:31:00Z",
+      "notes": "Covers projected aliases from rich views and outer view references."
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "View lifecycle diagnostics preserve catalog consistency.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/view_acceptance.zig",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-06-04T18:31:00Z",
+      "notes": "Duplicate create, repeated drop, and querying dropped views return typed diagnostics."
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Persisted snapshots reopen executable view definitions.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/view_persistence_acceptance.zig",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-06-04T18:31:00Z",
+      "notes": "Rich view bodies are persisted, read back, and rehydrated into an executable executor database."
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "CALL validates existence, argument count, type compatibility, and body failures with stable diagnostics.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/procedure_transaction_acceptance.zig; tests/integration/procedure_diagnostics_acceptance.zig",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-06-04T18:31:00Z",
+      "notes": "Covers missing procedure, column count mismatch, type mismatch, loop cap, and unsupported procedure diagnostics."
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Procedure execution uses the caller session and transaction context.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/procedure_transaction_acceptance.zig; tests/integration/procedure_acceptance.zig",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-06-04T18:31:00Z",
+      "notes": "Covers caller-visible writes, reader isolation before commit, commit durability, and rollback discard."
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Procedure local variables, parameter references, assignment, IF, bounded WHILE, and loop cap are covered.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/procedure_diagnostics_acceptance.zig; tests/integration/procedure_acceptance.zig; src/sql/procedure_body.zig tests",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-06-04T18:31:00Z",
+      "notes": "Covers bounded loops that mutate rows and the executor loop safety cap."
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "Unsupported stored-program constructs reject with stable diagnostics and no partial catalog mutation.",
+      "proof_type": "automated_test",
+      "evidence": "tests/integration/procedure_diagnostics_acceptance.zig; src/sql/procedure_body.zig tests; tests/fixtures/mariadb-adapted/procedure-control-flow.md",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-06-04T18:31:00Z",
+      "notes": "Covers cursors, handlers, recursion through CALL, dynamic SQL, routine functions, OUT/INOUT, packages, and diagnostics surfaces."
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "Adapted MariaDB view/procedure fixtures execute or document expected diagnostics.",
+      "proof_type": "automated_test",
+      "evidence": "query-syntax.md; view-basic.md; view-rich.md; procedure-single-statement.md; procedure-control-flow.md",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-06-04T18:31:00Z",
+      "notes": "All promoted view/procedure fixtures execute through MTR-lite; procedure-control-flow preserves two expected UnsupportedProcedure cases."
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "Roadmap, dialect, reference, and acceptance docs describe supported, deferred, and rejected behavior.",
+      "proof_type": "documentation",
+      "evidence": "docs/acceptance-phase7-views-procedures.md; docs/project-plan.md; docs/sql-dialect.md; docs/reference-corpus-snapshot.md",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-06-04T18:31:00Z",
+      "notes": "Roadmap marks Phase 7 complete for the constrained subset and Phase 8 as the active follow-up."
+    },
+    {
+      "criterion_id": "FR-011",
+      "description": "Full validation passes with representative CLI and benchmark smokes.",
+      "proof_type": "manual_validation",
+      "evidence": "zig build test; MTR-lite fixture smokes; parse/execute CLI smokes; benchmark smoke",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-06-04T18:31:00Z",
+      "notes": "See docs/acceptance-phase7-views-procedures.md for command summaries."
+    },
+    {
+      "criterion_id": "FR-012",
+      "description": "Phase 7 does not introduce server lifecycle, replication, temp-table, plugin, full stored-program, or legacy metadata baggage.",
+      "proof_type": "automated_test",
+      "evidence": "docs/sql-dialect.md; src/lib.zig feature policy tests; tests/integration/procedure_diagnostics_acceptance.zig",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-06-04T18:31:00Z",
+      "notes": "Unsupported server and stored-program surfaces remain rejected or documented as deferred."
+    }
+  ],
+  "negative_invariants": [
+    {
+      "invariant_id": "NI-001",
+      "description": "Rejected procedure bodies must not leave partial catalog or registry entries.",
+      "verification_method": "custom_command",
+      "verification_command": "zig build test --summary none",
+      "result": "confirmed_absent",
+      "evidence": "Command exited 0: ",
+      "verified_by": "codex:gpt-5"
+    },
+    {
+      "invariant_id": "NI-002",
+      "description": "View/procedure hardening must not enable server-only MariaDB baggage.",
+      "verification_method": "custom_command",
+      "verification_command": "zig build test --summary none",
+      "result": "confirmed_absent",
+      "evidence": "Command exited 0: ",
+      "verified_by": "codex:gpt-5"
+    }
+  ]
+}

@@ -6,6 +6,7 @@ const catalog = @import("catalog.zig");
 const checkpoint_worker = @import("checkpoint_worker.zig");
 const commit_queue = @import("commit_queue.zig");
 const concurrency = @import("concurrency.zig");
+const persistence = @import("persistence.zig");
 const procedure = @import("procedure.zig");
 const query_source = @import("query_source.zig");
 const row_store = @import("row_store.zig");
@@ -151,6 +152,87 @@ pub const Database = struct {
         self.views.deinit();
         self.db_catalog.deinit();
         self.* = undefined;
+    }
+
+    pub fn initFromSnapshot(
+        allocator: std.mem.Allocator,
+        source: *const persistence.DatabaseSnapshot,
+    ) !Database {
+        var db = Database.init(allocator);
+        errdefer db.deinit();
+
+        for (source.catalog.listTables()) |table| {
+            var cloned_table = try cloneTableDef(allocator, table);
+            var table_appended = false;
+            errdefer if (!table_appended) cloned_table.deinit(allocator);
+            try db.db_catalog.tables.append(allocator, cloned_table);
+            table_appended = true;
+
+            const restored_table = db.db_catalog.getTable(table.name) orelse return error.RowStoreMismatch;
+            const source_store = source.storeForTableConst(table.name) orelse return error.RowStoreMismatch;
+            var store = row_store.RowStore.init(allocator, restored_table);
+            var store_moved_to_state = false;
+            errdefer if (!store_moved_to_state) store.deinit();
+            try copyRowsIntoStore(&store, source_store);
+
+            var state = TableState{
+                .name = try allocator.dupe(u8, table.name),
+                .store = store,
+            };
+            store_moved_to_state = true;
+            var state_appended = false;
+            errdefer if (!state_appended) state.deinit(allocator);
+            try db.tables.append(allocator, state);
+            state_appended = true;
+        }
+
+        for (source.catalog.listViews()) |view_def| {
+            try db.db_catalog.registerView(view_def.name, view_def.body);
+            try db.createRuntimeViewFromBody(view_def.name, view_def.body);
+        }
+
+        for (source.catalog.listProcedures()) |procedure_def| {
+            try db.db_catalog.registerProcedure(procedure_def.name, procedure_def.body);
+            try db.procedures.create(procedure_def.name, &.{}, procedure_def.body);
+        }
+
+        db.refreshTablePointers();
+        return db;
+    }
+
+    pub fn exportSnapshot(self: *const Database) !persistence.DatabaseSnapshot {
+        var exported = persistence.DatabaseSnapshot.init(self.allocator);
+        errdefer exported.deinit();
+
+        for (self.tables.items) |table_state| {
+            var cloned_table = try cloneTableDef(self.allocator, table_state.store.table.*);
+            var table_appended = false;
+            errdefer if (!table_appended) cloned_table.deinit(self.allocator);
+            try exported.catalog.tables.append(self.allocator, cloned_table);
+            table_appended = true;
+        }
+        exported.refreshStoreTablePointers();
+
+        for (self.tables.items) |table_state| {
+            const exported_table = exported.catalog.getTable(table_state.name) orelse return error.RowStoreMismatch;
+            var store = row_store.RowStore.init(self.allocator, exported_table);
+            var appended = false;
+            errdefer if (!appended) store.deinit();
+            try copyRowsIntoStore(&store, &table_state.store);
+
+            try exported.stores.append(self.allocator, store);
+            appended = true;
+        }
+
+        for (self.db_catalog.listViews()) |view_def| {
+            try exported.catalog.registerView(view_def.name, view_def.body);
+        }
+
+        for (self.db_catalog.listProcedures()) |procedure_def| {
+            try exported.catalog.registerProcedure(procedure_def.name, procedure_def.body);
+        }
+
+        return exported;
     }
 
     pub fn executeSql(self: *Database, session: *Session, sql: []const u8) anyerror!ExecutionResult {
@@ -300,7 +382,7 @@ pub const Database = struct {
     }
 
     fn createView(self: *Database, statement: ast.CreateViewStatement) !void {
-        try self.db_catalog.registerView(statement.name, "SELECT");
+        try self.db_catalog.registerView(statement.name, statement.body_sql);
         errdefer self.db_catalog.dropView(statement.name) catch {};
         try self.views.create(statement.name, statement.query.*);
     }
@@ -559,6 +641,19 @@ pub const Database = struct {
         for (self.tables.items) |*table| {
             table.store.table = self.db_catalog.getTable(table.name).?;
         }
+    }
+
+    fn createRuntimeViewFromBody(self: *Database, name: []const u8, body_sql: []const u8) !void {
+        const parsed = try parser.parse(self.allocator, body_sql);
+        defer parsed.deinit(self.allocator);
+
+        return switch (parsed) {
+            .diagnostic => error.ParseDiagnostic,
+            .statement => |statement| switch (statement) {
+                .select => |select| self.views.create(name, select),
+                else => error.UnsupportedView,
+            },
+        };
     }
 
     pub fn currentCommitSequence(self: *const Database) concurrency.CommitSequence {
@@ -1356,6 +1451,13 @@ fn cloneRowsFromStore(allocator: std.mem.Allocator, store: *const row_store.RowS
     }
 
     return rows;
+}
+
+fn copyRowsIntoStore(target: *row_store.RowStore, source: *const row_store.RowStore) !void {
+    for (source.rows()) |row| {
+        try target.insertWithId(row.id, row.values);
+    }
+    target.next_id = source.nextRowId();
 }
 
 fn cloneTableDef(allocator: std.mem.Allocator, source: catalog.TableDef) !catalog.TableDef {

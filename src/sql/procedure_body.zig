@@ -269,6 +269,7 @@ const BodyParser = struct {
             .insert, .update, .delete, .select => {},
             else => {
                 var owned = statement;
+                parsed = .{ .diagnostic = .{ .code = .unexpected_end, .offset = 0 } };
                 owned.deinit(self.allocator);
                 return error.UnsupportedProcedure;
             },
@@ -464,12 +465,20 @@ test "procedure body parses variables control flow and SQL statements" {
 test "procedure body rejects unsupported stored-program surfaces" {
     const allocator = std.testing.allocator;
 
-    try std.testing.expectError(
-        error.UnsupportedProcedure,
-        parse(allocator, "BEGIN DECLARE cur CURSOR FOR SELECT * FROM memories; END"),
-    );
-    try std.testing.expectError(
-        error.UnsupportedProcedure,
-        parse(allocator, "BEGIN PREPARE stmt FROM 'SELECT 1'; END"),
-    );
+    const cases = [_][]const u8{
+        "BEGIN DECLARE cur CURSOR FOR SELECT * FROM memories; END",
+        "BEGIN DECLARE CONTINUE HANDLER FOR SQLEXCEPTION SET attempts = 1; END",
+        "BEGIN PREPARE stmt FROM 'SELECT 1'; END",
+        "BEGIN EXECUTE stmt; END",
+        "BEGIN CALL remember(); END",
+        "BEGIN GET DIAGNOSTICS CONDITION 1 attempts = RETURNED_SQLSTATE; END",
+        "BEGIN SIGNAL SQLSTATE '45000'; END",
+        "BEGIN RETURN 1; END",
+        "BEGIN LOOP SET attempts = 1; END LOOP; END",
+        "BEGIN REPEAT SET attempts = 1; UNTIL attempts > 0 END REPEAT; END",
+    };
+
+    for (cases) |case| {
+        try std.testing.expectError(error.UnsupportedProcedure, parse(allocator, case));
+    }
 }

@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "mission_slug": "phase7-views-procedures-hardening-01KT9RHH",
+  "mission_id": "01KT9RHHNCJPDGYWQ5EK3GH8TK",
+  "mission_branch": "kitty/mission-phase7-views-procedures-hardening-01KT9RHH",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "src/db/view.zig",
+        "tests/integration/view_acceptance.zig"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "src/db/procedure.zig",
+        "tests/integration/procedure_transaction_acceptance.zig"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "docs/reference-corpus-snapshot.md",
+        "src/db/persistence.zig",
+        "tests/fixtures/mariadb-adapted/view-rich.md",
+        "tests/integration/view_persistence_acceptance.zig"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "src/sql/procedure_body.zig",
+        "tests/integration/procedure_diagnostics_acceptance.zig"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-c"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "docs/acceptance-phase7-views-procedures.md",
+        "docs/project-plan.md",
+        "docs/sql-dialect.md"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b",
+        "lane-c",
+        "lane-d"
+      ],
+      "parallel_group": 2
+    }
+  ],
+  "computed_at": "2026-06-04T23:47:38.189470+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
