@@ -34,6 +34,8 @@ tags:
 - abi
 - diagnostics
 - tests
+assignee: "codex:gpt-5:implementer-ivan:implementer"
+agent: "codex:gpt-5:implementer-ivan:implementer"
 ---
 
 # Work Package Prompt: WP04 - Diagnostics and ABI Acceptance Smoke
@@ -60,3 +62,7 @@ adding an acceptance smoke for the full embedded lifecycle.
 - Acceptance smoke covers the connector lifecycle future language packages need.
 - No server/network/auth/plugin lifecycle appears.
 - `zig build test` passes.
+
+## Activity Log
+
+- 2026-06-05T02:52:43Z – codex:gpt-5:implementer-ivan:implementer – Moved to in_progress
