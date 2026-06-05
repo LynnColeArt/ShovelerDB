@@ -1,0 +1,13 @@
+{
+  "coordination_branch": "kitty/mission-phase9-embedding-abi-foundation-01KTAQXB",
+  "created_at": "2026-06-05T01:56:07.947250+00:00",
+  "friendly_name": "phase9 embedding abi foundation",
+  "mission_id": "01KTAQXBMAQSE0TSXWYF7YXJ5Z",
+  "mission_number": null,
+  "mission_slug": "phase9-embedding-abi-foundation-01KTAQXB",
+  "mission_type": "software-dev",
+  "purpose_context": "This mission advances phase9 embedding abi foundation on main so stakeholders can track the work from mission creation onward.",
+  "purpose_tldr": "phase9 embedding abi foundation",
+  "slug": "phase9-embedding-abi-foundation-01KTAQXB",
+  "target_branch": "main"
+}
