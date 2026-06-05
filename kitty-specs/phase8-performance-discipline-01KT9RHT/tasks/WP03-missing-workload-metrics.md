@@ -34,6 +34,8 @@ tags:
 - phase8
 - benchmark
 - workloads
+agent: "codex:gpt-5:implementer-ivan:implementer"
+shell_pid: "4074153"
 ---
 
 # Work Package Prompt: WP03 - Missing Workload Metrics
@@ -59,3 +61,7 @@ separate metrics.
 - Existing Phase 6 metrics still appear.
 - Workload tests or smokes validate metric names/counts.
 - `zig build test` passes.
+
+## Activity Log
+
+- 2026-06-05T00:50:45Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=4074153 – Implemented missing benchmark workload metrics in lane commit d1140cf; verified zig build test, text smoke with new and Phase 6 metric names, JSON jq metric/allocation check, acceptance-smoke JSON count check, git diff --check, and persistence smoke cleanup.
