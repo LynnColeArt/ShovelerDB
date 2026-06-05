@@ -30,6 +30,7 @@ tags:
 - phase9
 - abi
 - execution
+agent: "codex:gpt-5:implementer-ivan:implementer"
 ---
 
 # Work Package Prompt: WP02 - Handle Lifecycle and SQL Execution
@@ -55,3 +56,9 @@ internal Zig allocator-owned structures to foreign callers.
 - SQL execution can return ok, mutation count, or result-set handles.
 - Cleanup is explicit and idempotent where documented.
 - Existing `zig build test` remains green.
+
+## Activity Log
+
+- 2026-06-05T02:34:32Z – codex:gpt-5:implementer-ivan:implementer – Moved to for_review
+- 2026-06-05T02:37:56Z – codex:gpt-5:reviewer-renata:reviewer – Review passed: ABI handles and SQL execution match WP02 scope; review fix covered failed initial checkpoint cleanup. Validation: zig build test, zig fmt --check, git diff --check, C header syntax compile.
+- 2026-06-05T02:39:25Z – codex:gpt-5:implementer-ivan:implementer – Done: WP02 merged to main with ABI handle lifecycle, SQL execution bridge, and checkpoint-failure ownership fix. Validation on main: zig build test, zig fmt --check, git diff --check, C header syntax compile.

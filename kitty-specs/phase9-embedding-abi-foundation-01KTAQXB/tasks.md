@@ -52,9 +52,9 @@ packages remain follow-up missions.
 **Requirement Refs**: FR-003, FR-004, FR-006, FR-010  
 **Dependencies**: WP01
 
-- [ ] T004 Add ABI handle types and open-or-create/close/checkpoint functions.
-- [ ] T005 Bridge ABI SQL execution to the existing executor/persistence surfaces.
-- [ ] T006 Wire ABI modules into the public Zig library surface.
+- [x] T004 Add ABI handle types and open-or-create/close/checkpoint functions.
+- [x] T005 Bridge ABI SQL execution to the existing executor/persistence surfaces.
+- [x] T006 Wire ABI modules into the public Zig library surface.
 
 ### WP03 - Result Iteration and Value Access
 
@@ -63,9 +63,9 @@ packages remain follow-up missions.
 **Requirement Refs**: FR-005, FR-006, FR-010  
 **Dependencies**: WP01, WP02
 
-- [ ] T007 Add result metadata and row/value iteration helpers.
-- [ ] T008 Expose scalar, text/blob, and vector value accessors tied to result lifetime.
-- [ ] T009 Add explicit result/string release behavior and lifecycle tests.
+- [x] T007 Add result metadata and row/value iteration helpers.
+- [x] T008 Expose scalar, text/blob, and vector value accessors tied to result lifetime.
+- [x] T009 Add explicit result/string release behavior and lifecycle tests.
 
 ### WP04 - Diagnostics and ABI Acceptance Smoke
 
@@ -74,9 +74,9 @@ packages remain follow-up missions.
 **Requirement Refs**: FR-007, FR-008, FR-010  
 **Dependencies**: WP01, WP02, WP03
 
-- [ ] T010 Centralize ABI diagnostic/status code mapping.
-- [ ] T011 Add ABI acceptance smoke for SQL, transactions, vectors, persistence, and typed errors.
-- [ ] T012 Wire ABI integration tests into `zig build test`.
+- [x] T010 Centralize ABI diagnostic/status code mapping.
+- [x] T011 Add ABI acceptance smoke for SQL, transactions, vectors, persistence, and typed errors.
+- [x] T012 Wire ABI integration tests into `zig build test`.
 
 ### WP05 - Connector Fixture Handoff and Acceptance
 
@@ -85,9 +85,9 @@ packages remain follow-up missions.
 **Requirement Refs**: FR-001, FR-008, FR-009, FR-010, FR-011  
 **Dependencies**: WP01, WP02, WP03, WP04
 
-- [ ] T013 Add shared connector fixture documentation.
-- [ ] T014 Add Phase 9 acceptance evidence document.
-- [ ] T015 Run full validation and record Spec Kitty workflow notes if new anomalies appear.
+- [x] T013 Add shared connector fixture documentation.
+- [x] T014 Add Phase 9 acceptance evidence document.
+- [x] T015 Run full validation and record Spec Kitty workflow notes if new anomalies appear.
 
 ## Acceptance Handoff
 

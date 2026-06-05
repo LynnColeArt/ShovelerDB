@@ -23,7 +23,9 @@ agent_profile: implementer-ivan
 authoritative_surface: tests/integration/abi_acceptance.zig
 execution_mode: code_change
 owned_files:
+- src/abi/c_api.zig
 - src/abi/diagnostics.zig
+- src/lib.zig
 - tests/integration/abi_acceptance.zig
 - build.zig
 role: implementer
@@ -32,6 +34,8 @@ tags:
 - abi
 - diagnostics
 - tests
+assignee: "codex:gpt-5:implementer-ivan:implementer"
+agent: "codex:gpt-5:implementer-ivan:implementer"
 ---
 
 # Work Package Prompt: WP04 - Diagnostics and ABI Acceptance Smoke
@@ -58,3 +62,10 @@ adding an acceptance smoke for the full embedded lifecycle.
 - Acceptance smoke covers the connector lifecycle future language packages need.
 - No server/network/auth/plugin lifecycle appears.
 - `zig build test` passes.
+
+## Activity Log
+
+- 2026-06-05T02:52:43Z – codex:gpt-5:implementer-ivan:implementer – Moved to in_progress
+- 2026-06-05T02:59:26Z – codex:gpt-5:implementer-ivan:implementer – Moved to for_review
+- 2026-06-05T03:00:32Z – codex:gpt-5:reviewer-renata:reviewer – Review passed: diagnostics are centralized, ABI acceptance smoke covers open/create, SQL, transactions, iteration, vector ranking/access, typed diagnostics, checkpoint/reopen, and release cleanup. Validation: zig build test, zig fmt --check, git diff --check, C header syntax compile.
+- 2026-06-05T03:01:46Z – codex:gpt-5:implementer-ivan:implementer – Done: WP04 merged to main with centralized diagnostics and ABI acceptance smoke. Validation on main: zig build test, zig fmt --check, git diff --check, C header syntax compile.

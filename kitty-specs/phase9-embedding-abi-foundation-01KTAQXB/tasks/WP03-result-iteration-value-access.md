@@ -22,13 +22,20 @@ agent_profile: implementer-ivan
 authoritative_surface: src/abi/result.zig
 execution_mode: code_change
 owned_files:
+- docs/embedding-abi.md
+- include/shovelerdb.h
+- src/abi/c_api.zig
+- src/abi/handles.zig
 - src/abi/result.zig
 - src/abi/value_access.zig
+- src/lib.zig
 role: implementer
 tags:
 - phase9
 - abi
 - results
+assignee: "codex:gpt-5:implementer-ivan:implementer"
+agent: "codex:gpt-5:implementer-ivan:implementer"
 ---
 
 # Work Package Prompt: WP03 - Result Iteration and Value Access
@@ -54,3 +61,10 @@ for ABI-owned result handles.
 - Vector access includes float32 element type and dimension.
 - Caller ownership rules match `docs/embedding-abi.md`.
 - Existing `zig build test` remains green.
+
+## Activity Log
+
+- 2026-06-05T02:41:21Z – codex:gpt-5:implementer-ivan:implementer – Moved to in_progress
+- 2026-06-05T02:48:35Z – codex:gpt-5:implementer-ivan:implementer – Moved to for_review
+- 2026-06-05T02:49:36Z – codex:gpt-5:reviewer-renata:reviewer – Review passed: result row count, iteration, scalar/text/blob/vector value access, borrowed lifetime docs, and header wiring satisfy WP03 scope. Validation: zig build test, zig fmt --check, git diff --check, C header syntax compile.
+- 2026-06-05T02:50:49Z – codex:gpt-5:implementer-ivan:implementer – Done: WP03 merged to main with row count, result iteration, typed scalar/text/blob/vector access, and borrowed-lifetime docs/header wiring. Validation on main: zig build test, zig fmt --check, git diff --check, C header syntax compile.
