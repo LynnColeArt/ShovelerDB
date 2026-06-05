@@ -66,3 +66,4 @@ adding an acceptance smoke for the full embedded lifecycle.
 ## Activity Log
 
 - 2026-06-05T02:52:43Z – codex:gpt-5:implementer-ivan:implementer – Moved to in_progress
+- 2026-06-05T02:59:26Z – codex:gpt-5:implementer-ivan:implementer – Moved to for_review
