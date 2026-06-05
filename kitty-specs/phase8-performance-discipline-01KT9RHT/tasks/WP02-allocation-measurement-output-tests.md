@@ -29,6 +29,8 @@ tags:
 - phase8
 - benchmark
 - allocation
+agent: "codex:gpt-5:implementer-ivan:implementer"
+shell_pid: "4043082"
 ---
 
 # Work Package Prompt: WP02 - Allocation Measurement and Output Tests
@@ -52,3 +54,7 @@ tests that avoid machine-specific timing assertions.
 - Benchmark output includes allocation fields.
 - Output-shape tests pass without timing fragility.
 - `zig build test` passes.
+
+## Activity Log
+
+- 2026-06-05T00:37:30Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=4043082 – Implemented allocation-aware benchmark metrics in lane commit 91e8e42; verified zig build test, text allocation smoke, JSON allocation jq check, acceptance-smoke JSON allocation check, and git diff --check.
