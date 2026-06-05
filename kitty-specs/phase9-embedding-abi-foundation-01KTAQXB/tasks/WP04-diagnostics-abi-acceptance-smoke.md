@@ -67,3 +67,4 @@ adding an acceptance smoke for the full embedded lifecycle.
 
 - 2026-06-05T02:52:43Z – codex:gpt-5:implementer-ivan:implementer – Moved to in_progress
 - 2026-06-05T02:59:26Z – codex:gpt-5:implementer-ivan:implementer – Moved to for_review
+- 2026-06-05T03:00:32Z – codex:gpt-5:reviewer-renata:reviewer – Review passed: diagnostics are centralized, ABI acceptance smoke covers open/create, SQL, transactions, iteration, vector ranking/access, typed diagnostics, checkpoint/reopen, and release cleanup. Validation: zig build test, zig fmt --check, git diff --check, C header syntax compile.
