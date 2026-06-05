@@ -66,3 +66,4 @@ mission.
 ## Activity Log
 
 - 2026-06-05T03:02:36Z – codex:gpt-5:implementer-ivan:implementer – Moved to in_progress
+- 2026-06-05T03:08:18Z – codex:gpt-5:implementer-ivan:implementer – WP05 connector fixture and Phase 9 acceptance docs added in lane-e commit 3ae030e; validation passed: zig build test, Zig fmt check, git diff --check, and C header syntax check.
