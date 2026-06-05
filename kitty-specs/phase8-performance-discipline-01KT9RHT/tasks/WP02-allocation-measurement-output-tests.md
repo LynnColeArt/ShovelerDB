@@ -59,3 +59,4 @@ tests that avoid machine-specific timing assertions.
 
 - 2026-06-05T00:37:30Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=4043082 – Implemented allocation-aware benchmark metrics in lane commit 91e8e42; verified zig build test, text allocation smoke, JSON allocation jq check, acceptance-smoke JSON allocation check, and git diff --check.
 - 2026-06-05T00:39:36Z – codex:gpt-5:reviewer-renata:reviewer – Approved after reviewing WP02 allocation metrics diff. Validation: zig build test; text allocation-field smoke; JSON allocation-field jq check; git diff --check.
+- 2026-06-05T01:16:59Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=4043082 – Done override: Accepted mission branch was fast-forwarded to main after Spec Kitty merge blocked on stale lane already integrated into the accepted branch.
