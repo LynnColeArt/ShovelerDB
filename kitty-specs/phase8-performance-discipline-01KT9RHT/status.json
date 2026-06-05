@@ -1,28 +1,28 @@
 {
-  "event_count": 9,
-  "last_event_id": "01KTAJP938VAKVPM705FQ0VEV5",
-  "materialized_at": "2026-06-05T00:24:53.096477+00:00",
+  "event_count": 10,
+  "last_event_id": "01KTAJT7HN2VN7CCD1WNV7NGWP",
+  "materialized_at": "2026-06-05T00:27:02.581879+00:00",
   "mission_number": "",
   "mission_slug": "phase8-performance-discipline-01KT9RHT",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 0,
+    "approved": 1,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
+    "in_review": 0,
     "planned": 4
   },
   "work_packages": {
     "WP01": {
-      "actor": "codex:gpt-5:reviewer-renata:reviewer",
+      "actor": "user",
       "force_count": 1,
-      "lane": "in_review",
-      "last_event_id": "01KTAJP938VAKVPM705FQ0VEV5",
-      "last_transition_at": "2026-06-05T00:24:53.096477+00:00"
+      "lane": "approved",
+      "last_event_id": "01KTAJT7HN2VN7CCD1WNV7NGWP",
+      "last_transition_at": "2026-06-05T00:27:02.581879+00:00"
     },
     "WP02": {
       "actor": "finalize-tasks",
