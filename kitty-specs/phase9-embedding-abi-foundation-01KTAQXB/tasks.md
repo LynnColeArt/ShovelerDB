@@ -41,9 +41,9 @@ packages remain follow-up missions.
 **Requirement Refs**: FR-001, FR-002, FR-009, FR-011  
 **Dependencies**: none
 
-- [ ] T001 Document ABI lifecycle, ownership, diagnostics, vectors, and connector fixture contract.
-- [ ] T002 Add checked-in C header for the first ABI surface.
-- [ ] T003 Refresh roadmap and README to mark Phase 9 ABI foundation active.
+- [x] T001 Document ABI lifecycle, ownership, diagnostics, vectors, and connector fixture contract.
+- [x] T002 Add checked-in C header for the first ABI surface.
+- [x] T003 Refresh roadmap and README to mark Phase 9 ABI foundation active.
 
 ### WP02 - Handle Lifecycle and SQL Execution
 
