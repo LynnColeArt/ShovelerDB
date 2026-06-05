@@ -1,7 +1,7 @@
 {
-  "event_count": 7,
-  "last_event_id": "01KTAHX4Y7K2J2NFK7YN7HSSH2",
-  "materialized_at": "2026-06-05T00:11:09.639105+00:00",
+  "event_count": 8,
+  "last_event_id": "01KTAJJWQE7P6DH8GHAPVBYX6X",
+  "materialized_at": "2026-06-05T00:23:02.126578+00:00",
   "mission_number": "",
   "mission_slug": "phase8-performance-discipline-01KT9RHT",
   "mission_type": "software-dev",
@@ -11,18 +11,18 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 0,
-    "in_progress": 1,
+    "for_review": 1,
+    "in_progress": 0,
     "in_review": 0,
     "planned": 4
   },
   "work_packages": {
     "WP01": {
-      "actor": "implement-command",
+      "actor": "codex:gpt-5:implementer-ivan:implementer",
       "force_count": 1,
-      "lane": "in_progress",
-      "last_event_id": "01KTAHX4Y7K2J2NFK7YN7HSSH2",
-      "last_transition_at": "2026-06-05T00:11:09.639105+00:00"
+      "lane": "for_review",
+      "last_event_id": "01KTAJJWQE7P6DH8GHAPVBYX6X",
+      "last_transition_at": "2026-06-05T00:23:02.126578+00:00"
     },
     "WP02": {
       "actor": "finalize-tasks",
