@@ -74,9 +74,9 @@ packages remain follow-up missions.
 **Requirement Refs**: FR-007, FR-008, FR-010  
 **Dependencies**: WP01, WP02, WP03
 
-- [ ] T010 Centralize ABI diagnostic/status code mapping.
-- [ ] T011 Add ABI acceptance smoke for SQL, transactions, vectors, persistence, and typed errors.
-- [ ] T012 Wire ABI integration tests into `zig build test`.
+- [x] T010 Centralize ABI diagnostic/status code mapping.
+- [x] T011 Add ABI acceptance smoke for SQL, transactions, vectors, persistence, and typed errors.
+- [x] T012 Wire ABI integration tests into `zig build test`.
 
 ### WP05 - Connector Fixture Handoff and Acceptance
 
