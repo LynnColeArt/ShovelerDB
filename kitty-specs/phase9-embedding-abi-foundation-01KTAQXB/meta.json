@@ -1,4 +1,16 @@
 {
+  "acceptance_history": [
+    {
+      "acceptance_mode": "local",
+      "accepted_at": "2026-06-05T03:15:40.950180+00:00",
+      "accepted_by": "codex:gpt-5",
+      "accepted_from_commit": "9370dd8082b6525d90becab0252f0c78475716dc"
+    }
+  ],
+  "acceptance_mode": "local",
+  "accepted_at": "2026-06-05T03:15:40.950180+00:00",
+  "accepted_by": "codex:gpt-5",
+  "accepted_from_commit": "9370dd8082b6525d90becab0252f0c78475716dc",
   "coordination_branch": "kitty/mission-phase9-embedding-abi-foundation-01KTAQXB",
   "created_at": "2026-06-05T01:56:07.947250+00:00",
   "friendly_name": "phase9 embedding abi foundation",
