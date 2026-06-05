@@ -1,4 +1,5 @@
 const std = @import("std");
+const diagnostics = @import("diagnostics.zig");
 const handles = @import("handles.zig");
 const abi_result = @import("result.zig");
 const value_access = @import("value_access.zig");
@@ -19,19 +20,19 @@ const abi_version_major: u32 = 0;
 const abi_version_minor: u32 = 1;
 const abi_version_patch: u32 = 0;
 
-export fn shovelerdb_abi_version_major() u32 {
+pub export fn shovelerdb_abi_version_major() u32 {
     return abi_version_major;
 }
 
-export fn shovelerdb_abi_version_minor() u32 {
+pub export fn shovelerdb_abi_version_minor() u32 {
     return abi_version_minor;
 }
 
-export fn shovelerdb_abi_version_patch() u32 {
+pub export fn shovelerdb_abi_version_patch() u32 {
     return abi_version_patch;
 }
 
-export fn shovelerdb_open_or_create(
+pub export fn shovelerdb_open_or_create(
     path: ?[*:0]const u8,
     out_database: ?*?*shovelerdb_database,
 ) shovelerdb_status {
@@ -50,30 +51,30 @@ export fn shovelerdb_open_or_create(
         path_slice,
     ) catch |err| {
         handles.allocator.destroy(handle);
-        return statusFromError(err);
+        return diagnostics.statusFromError(err);
     };
 
     out.* = handle;
     return .ok;
 }
 
-export fn shovelerdb_close(database: ?*shovelerdb_database) void {
+pub export fn shovelerdb_close(database: ?*shovelerdb_database) void {
     const handle = database orelse return;
     handle.deinit();
     handles.allocator.destroy(handle);
 }
 
-export fn shovelerdb_checkpoint(database: ?*shovelerdb_database) shovelerdb_status {
+pub export fn shovelerdb_checkpoint(database: ?*shovelerdb_database) shovelerdb_status {
     const handle = database orelse return .invalid_handle;
     handle.checkpoint() catch |err| {
-        const status = statusFromError(err);
+        const status = diagnostics.statusFromError(err);
         handle.last_status = status;
         return status;
     };
     return .ok;
 }
 
-export fn shovelerdb_execute(
+pub export fn shovelerdb_execute(
     database: ?*shovelerdb_database,
     sql: ?[*:0]const u8,
     out_result: ?*?*shovelerdb_result,
@@ -97,7 +98,7 @@ export fn shovelerdb_execute(
     };
 
     result_handle.* = handle.execute(sql_slice) catch |err| {
-        const status = statusFromError(err);
+        const status = diagnostics.statusFromError(err);
         handle.last_status = status;
         handles.allocator.destroy(result_handle);
         return status;
@@ -107,33 +108,33 @@ export fn shovelerdb_execute(
     return .ok;
 }
 
-export fn shovelerdb_result_release(result: ?*shovelerdb_result) void {
+pub export fn shovelerdb_result_release(result: ?*shovelerdb_result) void {
     const handle = result orelse return;
     handle.deinit();
     handles.allocator.destroy(handle);
 }
 
-export fn shovelerdb_result_kind_of(result: ?*const shovelerdb_result) shovelerdb_result_kind {
+pub export fn shovelerdb_result_kind_of(result: ?*const shovelerdb_result) shovelerdb_result_kind {
     const handle = result orelse return .empty;
     return handle.kind();
 }
 
-export fn shovelerdb_result_mutation_count(result: ?*const shovelerdb_result) u64 {
+pub export fn shovelerdb_result_mutation_count(result: ?*const shovelerdb_result) u64 {
     const handle = result orelse return 0;
     return handle.mutationCount();
 }
 
-export fn shovelerdb_result_column_count(result: ?*const shovelerdb_result) usize {
+pub export fn shovelerdb_result_column_count(result: ?*const shovelerdb_result) usize {
     const handle = result orelse return 0;
     return handle.columnCount();
 }
 
-export fn shovelerdb_result_row_count(result: ?*const shovelerdb_result) usize {
+pub export fn shovelerdb_result_row_count(result: ?*const shovelerdb_result) usize {
     const handle = result orelse return 0;
     return abi_result.rowCount(handle);
 }
 
-export fn shovelerdb_result_column_name(
+pub export fn shovelerdb_result_column_name(
     result: ?*const shovelerdb_result,
     column_index: usize,
     out_name: ?*shovelerdb_string_view,
@@ -145,7 +146,7 @@ export fn shovelerdb_result_column_name(
     return .ok;
 }
 
-export fn shovelerdb_result_next(
+pub export fn shovelerdb_result_next(
     result: ?*shovelerdb_result,
     out_row: ?*?*const shovelerdb_row,
 ) shovelerdb_status {
@@ -156,7 +157,7 @@ export fn shovelerdb_result_next(
     return .ok;
 }
 
-export fn shovelerdb_row_value_kind(
+pub export fn shovelerdb_row_value_kind(
     row: ?*const shovelerdb_row,
     column_index: usize,
     out_kind: ?*shovelerdb_value_kind,
@@ -164,11 +165,11 @@ export fn shovelerdb_row_value_kind(
     const out = out_kind orelse return .invalid_argument;
     out.* = .null;
     const row_handle = row orelse return .invalid_handle;
-    out.* = value_access.kind(row_handle, column_index) catch |err| return statusFromError(err);
+    out.* = value_access.kind(row_handle, column_index) catch |err| return diagnostics.statusFromError(err);
     return .ok;
 }
 
-export fn shovelerdb_row_value_int64(
+pub export fn shovelerdb_row_value_int64(
     row: ?*const shovelerdb_row,
     column_index: usize,
     out_value: ?*i64,
@@ -176,11 +177,11 @@ export fn shovelerdb_row_value_int64(
     const out = out_value orelse return .invalid_argument;
     out.* = 0;
     const row_handle = row orelse return .invalid_handle;
-    out.* = value_access.int64(row_handle, column_index) catch |err| return statusFromError(err);
+    out.* = value_access.int64(row_handle, column_index) catch |err| return diagnostics.statusFromError(err);
     return .ok;
 }
 
-export fn shovelerdb_row_value_float64(
+pub export fn shovelerdb_row_value_float64(
     row: ?*const shovelerdb_row,
     column_index: usize,
     out_value: ?*f64,
@@ -188,11 +189,11 @@ export fn shovelerdb_row_value_float64(
     const out = out_value orelse return .invalid_argument;
     out.* = 0;
     const row_handle = row orelse return .invalid_handle;
-    out.* = value_access.float64(row_handle, column_index) catch |err| return statusFromError(err);
+    out.* = value_access.float64(row_handle, column_index) catch |err| return diagnostics.statusFromError(err);
     return .ok;
 }
 
-export fn shovelerdb_row_value_bool(
+pub export fn shovelerdb_row_value_bool(
     row: ?*const shovelerdb_row,
     column_index: usize,
     out_value: ?*u8,
@@ -200,11 +201,11 @@ export fn shovelerdb_row_value_bool(
     const out = out_value orelse return .invalid_argument;
     out.* = 0;
     const row_handle = row orelse return .invalid_handle;
-    out.* = value_access.boolean(row_handle, column_index) catch |err| return statusFromError(err);
+    out.* = value_access.boolean(row_handle, column_index) catch |err| return diagnostics.statusFromError(err);
     return .ok;
 }
 
-export fn shovelerdb_row_value_text(
+pub export fn shovelerdb_row_value_text(
     row: ?*const shovelerdb_row,
     column_index: usize,
     out_value: ?*shovelerdb_string_view,
@@ -212,11 +213,11 @@ export fn shovelerdb_row_value_text(
     const out = out_value orelse return .invalid_argument;
     out.* = .{ .data = null, .len = 0 };
     const row_handle = row orelse return .invalid_handle;
-    out.* = value_access.text(row_handle, column_index) catch |err| return statusFromError(err);
+    out.* = value_access.text(row_handle, column_index) catch |err| return diagnostics.statusFromError(err);
     return .ok;
 }
 
-export fn shovelerdb_row_value_blob(
+pub export fn shovelerdb_row_value_blob(
     row: ?*const shovelerdb_row,
     column_index: usize,
     out_value: ?*shovelerdb_bytes_view,
@@ -224,11 +225,11 @@ export fn shovelerdb_row_value_blob(
     const out = out_value orelse return .invalid_argument;
     out.* = .{ .data = null, .len = 0 };
     const row_handle = row orelse return .invalid_handle;
-    out.* = value_access.blob(row_handle, column_index) catch |err| return statusFromError(err);
+    out.* = value_access.blob(row_handle, column_index) catch |err| return diagnostics.statusFromError(err);
     return .ok;
 }
 
-export fn shovelerdb_row_value_vector_f32(
+pub export fn shovelerdb_row_value_vector_f32(
     row: ?*const shovelerdb_row,
     column_index: usize,
     out_value: ?*shovelerdb_f32_vector_view,
@@ -236,19 +237,19 @@ export fn shovelerdb_row_value_vector_f32(
     const out = out_value orelse return .invalid_argument;
     out.* = .{ .data = null, .len = 0 };
     const row_handle = row orelse return .invalid_handle;
-    out.* = value_access.vectorF32(row_handle, column_index) catch |err| return statusFromError(err);
+    out.* = value_access.vectorF32(row_handle, column_index) catch |err| return diagnostics.statusFromError(err);
     return .ok;
 }
 
-export fn shovelerdb_status_diagnostic_code(status: shovelerdb_status) shovelerdb_diagnostic_code {
-    return diagnosticCodeFromStatus(status);
+pub export fn shovelerdb_status_diagnostic_code(status: shovelerdb_status) shovelerdb_diagnostic_code {
+    return diagnostics.diagnosticCodeFromStatus(status);
 }
 
-export fn shovelerdb_status_message(status: shovelerdb_status) [*:0]const u8 {
-    return statusMessage(status);
+pub export fn shovelerdb_status_message(status: shovelerdb_status) [*:0]const u8 {
+    return diagnostics.statusMessage(status);
 }
 
-export fn shovelerdb_database_last_diagnostic(
+pub export fn shovelerdb_database_last_diagnostic(
     database: ?*const shovelerdb_database,
     out_code: ?*shovelerdb_diagnostic_code,
     out_message: ?*shovelerdb_string_view,
@@ -256,104 +257,11 @@ export fn shovelerdb_database_last_diagnostic(
     const handle = database orelse return .invalid_handle;
     const code_out = out_code orelse return .invalid_argument;
     const message_out = out_message orelse return .invalid_argument;
-    const message = statusMessage(handle.last_status);
+    const message = diagnostics.statusMessage(handle.last_status);
     const message_slice = std.mem.span(message);
-    code_out.* = diagnosticCodeFromStatus(handle.last_status);
+    code_out.* = diagnostics.diagnosticCodeFromStatus(handle.last_status);
     message_out.* = .{ .data = message_slice.ptr, .len = message_slice.len };
     return .ok;
-}
-
-fn statusFromError(err: anyerror) shovelerdb_status {
-    return switch (err) {
-        error.OutOfMemory => .allocation_failed,
-        error.InvalidArgument => .invalid_argument,
-        error.InvalidHandle => .invalid_handle,
-        error.ParseDiagnostic => .parse_error,
-        error.DuplicateObject,
-        error.UnknownObject,
-        error.NameConflict,
-        error.UnknownColumn,
-        error.AmbiguousColumn,
-        error.ColumnCountMismatch,
-        => .object_error,
-        error.TransactionRequired,
-        error.TransactionActive,
-        error.NoActiveTransaction,
-        error.AlreadyCommitted,
-        error.AlreadyRolledBack,
-        => .transaction_error,
-        error.TypeMismatch,
-        error.InvalidGrouping,
-        => .type_error,
-        error.VectorDimensionMismatch,
-        error.InvalidVectorDimension,
-        error.ZeroVector,
-        => .vector_error,
-        error.InvalidHeader,
-        error.UnsupportedVersion,
-        error.TruncatedPayload,
-        error.PayloadLengthMismatch,
-        error.PayloadChecksumMismatch,
-        error.InvalidColumnType,
-        error.InvalidValueTag,
-        error.InvalidBooleanEncoding,
-        error.InvalidVectorElementType,
-        error.RowStoreMismatch,
-        error.ValueTooLarge,
-        => .persistence_error,
-        error.FileNotFound,
-        error.AccessDenied,
-        error.FileTooBig,
-        error.IsDir,
-        error.NoSpaceLeft,
-        error.NotDir,
-        error.PathAlreadyExists,
-        error.SystemResources,
-        error.WouldBlock,
-        error.InputOutput,
-        => .io_error,
-        error.UnsupportedExpression,
-        error.UnsupportedView,
-        error.UnsupportedProcedure,
-        => .unsupported,
-        else => .internal_error,
-    };
-}
-
-fn diagnosticCodeFromStatus(status: shovelerdb_status) shovelerdb_diagnostic_code {
-    return switch (status) {
-        .ok => .none,
-        .invalid_argument => .invalid_argument,
-        .invalid_handle => .invalid_handle,
-        .allocation_failed => .allocation,
-        .parse_error => .parser,
-        .object_error => .object,
-        .transaction_error => .transaction,
-        .type_error => .type,
-        .vector_error => .vector,
-        .persistence_error => .persistence,
-        .io_error => .io,
-        .unsupported => .unsupported,
-        .internal_error => .internal,
-    };
-}
-
-fn statusMessage(status: shovelerdb_status) [*:0]const u8 {
-    return switch (status) {
-        .ok => "ok",
-        .invalid_argument => "invalid argument",
-        .invalid_handle => "invalid handle",
-        .allocation_failed => "allocation failed",
-        .parse_error => "SQL parse error",
-        .object_error => "object or catalog error",
-        .transaction_error => "transaction error",
-        .type_error => "type error",
-        .vector_error => "vector error",
-        .persistence_error => "persistence error",
-        .io_error => "I/O error",
-        .unsupported => "unsupported SQL surface",
-        .internal_error => "internal error",
-    };
 }
 
 test "C ABI reports versions and maps diagnostics" {

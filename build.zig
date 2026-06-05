@@ -161,6 +161,14 @@ pub fn build(b: *std.Build) void {
             .{ .name = "benchmark_workloads", .module = benchmark_workloads_module },
         },
     });
+    const abi_integration_module = b.createModule(.{
+        .root_source_file = b.path("tests/integration/abi_acceptance.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "shovelerdb", .module = lib_module },
+        },
+    });
     const adapted_fixture_integration_module = b.createModule(.{
         .root_source_file = b.path("tests/adapted_fixture_acceptance.zig"),
         .target = target,
@@ -240,6 +248,9 @@ pub fn build(b: *std.Build) void {
     const benchmark_workload_integration_tests = b.addTest(.{
         .root_module = benchmark_workload_integration_module,
     });
+    const abi_integration_tests = b.addTest(.{
+        .root_module = abi_integration_module,
+    });
     const adapted_fixture_integration_tests = b.addTest(.{
         .root_module = adapted_fixture_integration_module,
     });
@@ -262,6 +273,7 @@ pub fn build(b: *std.Build) void {
     const run_concurrency_stress_integration_tests = b.addRunArtifact(concurrency_stress_integration_tests);
     const run_benchmark_output_integration_tests = b.addRunArtifact(benchmark_output_integration_tests);
     const run_benchmark_workload_integration_tests = b.addRunArtifact(benchmark_workload_integration_tests);
+    const run_abi_integration_tests = b.addRunArtifact(abi_integration_tests);
     const run_adapted_fixture_integration_tests = b.addRunArtifact(adapted_fixture_integration_tests);
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_lib_tests.step);
@@ -282,5 +294,6 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_concurrency_stress_integration_tests.step);
     test_step.dependOn(&run_benchmark_output_integration_tests.step);
     test_step.dependOn(&run_benchmark_workload_integration_tests.step);
+    test_step.dependOn(&run_abi_integration_tests.step);
     test_step.dependOn(&run_adapted_fixture_integration_tests.step);
 }
