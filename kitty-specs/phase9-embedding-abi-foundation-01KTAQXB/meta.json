@@ -1,6 +1,8 @@
 {
+  "accept_commit": "b2d770d88b629d8ec0b391e88848c3a60d62040f",
   "acceptance_history": [
     {
+      "accept_commit": "b2d770d88b629d8ec0b391e88848c3a60d62040f",
       "acceptance_mode": "local",
       "accepted_at": "2026-06-05T03:15:40.950180+00:00",
       "accepted_by": "codex:gpt-5",
