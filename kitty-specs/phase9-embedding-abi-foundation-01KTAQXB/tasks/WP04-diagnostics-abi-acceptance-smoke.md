@@ -23,7 +23,9 @@ agent_profile: implementer-ivan
 authoritative_surface: tests/integration/abi_acceptance.zig
 execution_mode: code_change
 owned_files:
+- src/abi/c_api.zig
 - src/abi/diagnostics.zig
+- src/lib.zig
 - tests/integration/abi_acceptance.zig
 - build.zig
 role: implementer
