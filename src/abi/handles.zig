@@ -90,7 +90,8 @@ pub const DatabaseHandle = struct {
         path_arg: []const u8,
     ) !DatabaseHandle {
         const owned_path = try allocator_arg.dupe(u8, path_arg);
-        errdefer allocator_arg.free(owned_path);
+        var path_moved_to_handle = false;
+        errdefer if (!path_moved_to_handle) allocator_arg.free(owned_path);
 
         var created = false;
         var db = openExecutorDatabase(allocator_arg, io_arg, dir_arg, path_arg) catch |err| switch (err) {
@@ -100,7 +101,8 @@ pub const DatabaseHandle = struct {
             },
             else => return err,
         };
-        errdefer db.deinit();
+        var db_moved_to_handle = false;
+        errdefer if (!db_moved_to_handle) db.deinit();
 
         var handle = DatabaseHandle{
             .allocator = allocator_arg,
@@ -110,6 +112,8 @@ pub const DatabaseHandle = struct {
             .db = db,
             .session = executor.Session.init(allocator_arg),
         };
+        path_moved_to_handle = true;
+        db_moved_to_handle = true;
         errdefer handle.deinit();
 
         if (created) {
@@ -236,6 +240,22 @@ test "ABI database handle opens creates checkpoints and reopens through executor
     try std.testing.expectEqual(@as(usize, 2), selected.columnCount());
     const first_column = try selected.columnName(0);
     try std.testing.expectEqualStrings("id", first_column.data.?[0..first_column.len]);
+}
+
+test "ABI database handle cleans up once when initial checkpoint fails" {
+    const test_allocator = std.testing.allocator;
+    const io = std.testing.io;
+
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    var db = DatabaseHandle.openOrCreate(test_allocator, io, tmp.dir, "missing/abi.shovel") catch |err| {
+        try std.testing.expect(err == error.FileNotFound or err == error.NotDir);
+        return;
+    };
+    defer db.deinit();
+
+    return error.ExpectedCheckpointFailure;
 }
 
 test "ABI result cleanup is idempotent for owned handles" {
