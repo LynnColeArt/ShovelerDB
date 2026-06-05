@@ -1,9 +1,11 @@
 const std = @import("std");
 const handles = @import("handles.zig");
+const abi_result = @import("result.zig");
+const value_access = @import("value_access.zig");
 
 pub const shovelerdb_database = handles.DatabaseHandle;
 pub const shovelerdb_result = handles.ResultHandle;
-pub const shovelerdb_row = opaque {};
+pub const shovelerdb_row = abi_result.RowView;
 
 pub const shovelerdb_status = handles.StatusCode;
 pub const shovelerdb_diagnostic_code = handles.DiagnosticCode;
@@ -126,6 +128,11 @@ export fn shovelerdb_result_column_count(result: ?*const shovelerdb_result) usiz
     return handle.columnCount();
 }
 
+export fn shovelerdb_result_row_count(result: ?*const shovelerdb_result) usize {
+    const handle = result orelse return 0;
+    return abi_result.rowCount(handle);
+}
+
 export fn shovelerdb_result_column_name(
     result: ?*const shovelerdb_result,
     column_index: usize,
@@ -142,9 +149,11 @@ export fn shovelerdb_result_next(
     result: ?*shovelerdb_result,
     out_row: ?*?*const shovelerdb_row,
 ) shovelerdb_status {
-    _ = result;
-    if (out_row) |out| out.* = null;
-    return .unsupported;
+    const out = out_row orelse return .invalid_argument;
+    out.* = null;
+    const handle = result orelse return .invalid_handle;
+    out.* = abi_result.nextRow(handle);
+    return .ok;
 }
 
 export fn shovelerdb_row_value_kind(
@@ -152,10 +161,11 @@ export fn shovelerdb_row_value_kind(
     column_index: usize,
     out_kind: ?*shovelerdb_value_kind,
 ) shovelerdb_status {
-    _ = row;
-    _ = column_index;
-    if (out_kind) |out| out.* = .null;
-    return .unsupported;
+    const out = out_kind orelse return .invalid_argument;
+    out.* = .null;
+    const row_handle = row orelse return .invalid_handle;
+    out.* = value_access.kind(row_handle, column_index) catch |err| return statusFromError(err);
+    return .ok;
 }
 
 export fn shovelerdb_row_value_int64(
@@ -163,10 +173,11 @@ export fn shovelerdb_row_value_int64(
     column_index: usize,
     out_value: ?*i64,
 ) shovelerdb_status {
-    _ = row;
-    _ = column_index;
-    if (out_value) |out| out.* = 0;
-    return .unsupported;
+    const out = out_value orelse return .invalid_argument;
+    out.* = 0;
+    const row_handle = row orelse return .invalid_handle;
+    out.* = value_access.int64(row_handle, column_index) catch |err| return statusFromError(err);
+    return .ok;
 }
 
 export fn shovelerdb_row_value_float64(
@@ -174,10 +185,11 @@ export fn shovelerdb_row_value_float64(
     column_index: usize,
     out_value: ?*f64,
 ) shovelerdb_status {
-    _ = row;
-    _ = column_index;
-    if (out_value) |out| out.* = 0;
-    return .unsupported;
+    const out = out_value orelse return .invalid_argument;
+    out.* = 0;
+    const row_handle = row orelse return .invalid_handle;
+    out.* = value_access.float64(row_handle, column_index) catch |err| return statusFromError(err);
+    return .ok;
 }
 
 export fn shovelerdb_row_value_bool(
@@ -185,10 +197,11 @@ export fn shovelerdb_row_value_bool(
     column_index: usize,
     out_value: ?*u8,
 ) shovelerdb_status {
-    _ = row;
-    _ = column_index;
-    if (out_value) |out| out.* = 0;
-    return .unsupported;
+    const out = out_value orelse return .invalid_argument;
+    out.* = 0;
+    const row_handle = row orelse return .invalid_handle;
+    out.* = value_access.boolean(row_handle, column_index) catch |err| return statusFromError(err);
+    return .ok;
 }
 
 export fn shovelerdb_row_value_text(
@@ -196,10 +209,11 @@ export fn shovelerdb_row_value_text(
     column_index: usize,
     out_value: ?*shovelerdb_string_view,
 ) shovelerdb_status {
-    _ = row;
-    _ = column_index;
-    if (out_value) |out| out.* = .{ .data = null, .len = 0 };
-    return .unsupported;
+    const out = out_value orelse return .invalid_argument;
+    out.* = .{ .data = null, .len = 0 };
+    const row_handle = row orelse return .invalid_handle;
+    out.* = value_access.text(row_handle, column_index) catch |err| return statusFromError(err);
+    return .ok;
 }
 
 export fn shovelerdb_row_value_blob(
@@ -207,10 +221,11 @@ export fn shovelerdb_row_value_blob(
     column_index: usize,
     out_value: ?*shovelerdb_bytes_view,
 ) shovelerdb_status {
-    _ = row;
-    _ = column_index;
-    if (out_value) |out| out.* = .{ .data = null, .len = 0 };
-    return .unsupported;
+    const out = out_value orelse return .invalid_argument;
+    out.* = .{ .data = null, .len = 0 };
+    const row_handle = row orelse return .invalid_handle;
+    out.* = value_access.blob(row_handle, column_index) catch |err| return statusFromError(err);
+    return .ok;
 }
 
 export fn shovelerdb_row_value_vector_f32(
@@ -218,10 +233,11 @@ export fn shovelerdb_row_value_vector_f32(
     column_index: usize,
     out_value: ?*shovelerdb_f32_vector_view,
 ) shovelerdb_status {
-    _ = row;
-    _ = column_index;
-    if (out_value) |out| out.* = .{ .data = null, .len = 0 };
-    return .unsupported;
+    const out = out_value orelse return .invalid_argument;
+    out.* = .{ .data = null, .len = 0 };
+    const row_handle = row orelse return .invalid_handle;
+    out.* = value_access.vectorF32(row_handle, column_index) catch |err| return statusFromError(err);
+    return .ok;
 }
 
 export fn shovelerdb_status_diagnostic_code(status: shovelerdb_status) shovelerdb_diagnostic_code {
@@ -250,6 +266,7 @@ export fn shovelerdb_database_last_diagnostic(
 fn statusFromError(err: anyerror) shovelerdb_status {
     return switch (err) {
         error.OutOfMemory => .allocation_failed,
+        error.InvalidArgument => .invalid_argument,
         error.InvalidHandle => .invalid_handle,
         error.ParseDiagnostic => .parse_error,
         error.DuplicateObject,
@@ -351,4 +368,84 @@ test "C ABI rejects invalid pointer arguments" {
     try std.testing.expectEqual(shovelerdb_status.invalid_argument, shovelerdb_open_or_create(null, null));
     try std.testing.expectEqual(shovelerdb_status.invalid_handle, shovelerdb_checkpoint(null));
     try std.testing.expectEqual(shovelerdb_status.invalid_handle, shovelerdb_execute(null, "SELECT 1", null));
+}
+
+test "C ABI iterates rows and reads typed values from result handles" {
+    const test_allocator = std.testing.allocator;
+    const io = std.testing.io;
+
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+
+    var db = try handles.DatabaseHandle.openOrCreate(test_allocator, io, tmp.dir, "abi-values.shovel");
+    defer db.deinit();
+
+    var setup = try db.execute("CREATE TABLE memories (id INTEGER, score FLOAT, active BOOLEAN, body TEXT, embedding VECTOR(2));");
+    setup.deinit();
+    setup = try db.execute("BEGIN;");
+    setup.deinit();
+    setup = try db.execute("INSERT INTO memories VALUES (7, 1.5, TRUE, 'memory', [0.25, 0.75]);");
+    setup.deinit();
+    setup = try db.execute("COMMIT;");
+    setup.deinit();
+
+    var selected = try db.execute("SELECT NULL, id, score, active, body, embedding FROM memories;");
+    defer selected.deinit();
+
+    try std.testing.expectEqual(shovelerdb_result_kind.rows, shovelerdb_result_kind_of(&selected));
+    try std.testing.expectEqual(@as(usize, 6), shovelerdb_result_column_count(&selected));
+    try std.testing.expectEqual(@as(usize, 1), shovelerdb_result_row_count(&selected));
+
+    var column_name = shovelerdb_string_view{ .data = null, .len = 0 };
+    try std.testing.expectEqual(shovelerdb_status.ok, shovelerdb_result_column_name(&selected, 1, &column_name));
+    try std.testing.expectEqualStrings("id", column_name.data.?[0..column_name.len]);
+
+    var row: ?*const shovelerdb_row = null;
+    try std.testing.expectEqual(shovelerdb_status.ok, shovelerdb_result_next(&selected, &row));
+    const current_row = row orelse return error.ExpectedRow;
+
+    var kind_out = shovelerdb_value_kind.null;
+    try std.testing.expectEqual(shovelerdb_status.ok, shovelerdb_row_value_kind(current_row, 0, &kind_out));
+    try std.testing.expectEqual(shovelerdb_value_kind.null, kind_out);
+
+    var int_out: i64 = 0;
+    try std.testing.expectEqual(shovelerdb_status.ok, shovelerdb_row_value_int64(current_row, 1, &int_out));
+    try std.testing.expectEqual(@as(i64, 7), int_out);
+
+    var float_out: f64 = 0;
+    try std.testing.expectEqual(shovelerdb_status.ok, shovelerdb_row_value_float64(current_row, 2, &float_out));
+    try std.testing.expectEqual(@as(f64, 1.5), float_out);
+
+    var bool_out: u8 = 0;
+    try std.testing.expectEqual(shovelerdb_status.ok, shovelerdb_row_value_bool(current_row, 3, &bool_out));
+    try std.testing.expectEqual(@as(u8, 1), bool_out);
+
+    var text_out = shovelerdb_string_view{ .data = null, .len = 0 };
+    try std.testing.expectEqual(shovelerdb_status.ok, shovelerdb_row_value_text(current_row, 4, &text_out));
+    try std.testing.expectEqualStrings("memory", text_out.data.?[0..text_out.len]);
+
+    var vector_out = shovelerdb_f32_vector_view{ .data = null, .len = 0 };
+    try std.testing.expectEqual(shovelerdb_status.ok, shovelerdb_row_value_vector_f32(current_row, 5, &vector_out));
+    try std.testing.expectEqualSlices(f32, &.{ 0.25, 0.75 }, vector_out.data.?[0..vector_out.len]);
+
+    try std.testing.expectEqual(shovelerdb_status.type_error, shovelerdb_row_value_int64(current_row, 4, &int_out));
+    try std.testing.expectEqual(shovelerdb_status.invalid_argument, shovelerdb_result_next(&selected, null));
+    try std.testing.expectEqual(shovelerdb_status.ok, shovelerdb_result_next(&selected, &row));
+    try std.testing.expect(row == null);
+}
+
+test "C ABI reads blob values from borrowed row views" {
+    const test_allocator = std.testing.allocator;
+    const db_value = @import("../db/value.zig");
+    const executor = @import("../db/executor.zig");
+
+    const values = try test_allocator.alloc(db_value.Value, 1);
+    values[0] = try db_value.Value.initBlob(test_allocator, &.{ 0xCA, 0xFE });
+    var row = executor.ResultRow{ .values = values };
+    defer row.deinit(test_allocator);
+
+    const row_view: *const shovelerdb_row = @ptrCast(&row);
+    var blob_out = shovelerdb_bytes_view{ .data = null, .len = 0 };
+    try std.testing.expectEqual(shovelerdb_status.ok, shovelerdb_row_value_blob(row_view, 0, &blob_out));
+    try std.testing.expectEqualSlices(u8, &.{ 0xCA, 0xFE }, blob_out.data.?[0..blob_out.len]);
 }

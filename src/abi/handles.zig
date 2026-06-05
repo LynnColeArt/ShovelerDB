@@ -154,6 +154,7 @@ pub const DatabaseHandle = struct {
 pub const ResultHandle = struct {
     allocator: std.mem.Allocator,
     result: executor.ExecutionResult,
+    next_row_index: usize = 0,
     released: bool = false,
 
     pub fn deinit(self: *ResultHandle) void {
