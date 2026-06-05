@@ -22,8 +22,11 @@ agent_profile: implementer-ivan
 authoritative_surface: src/abi/result.zig
 execution_mode: code_change
 owned_files:
+- src/abi/c_api.zig
+- src/abi/handles.zig
 - src/abi/result.zig
 - src/abi/value_access.zig
+- src/lib.zig
 role: implementer
 tags:
 - phase9
