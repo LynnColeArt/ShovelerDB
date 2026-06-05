@@ -65,3 +65,4 @@ for ABI-owned result handles.
 ## Activity Log
 
 - 2026-06-05T02:41:21Z – codex:gpt-5:implementer-ivan:implementer – Moved to in_progress
+- 2026-06-05T02:48:35Z – codex:gpt-5:implementer-ivan:implementer – Moved to for_review
