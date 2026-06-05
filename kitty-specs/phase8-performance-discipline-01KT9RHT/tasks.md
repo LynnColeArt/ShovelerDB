@@ -86,9 +86,9 @@ product hot-path metrics, warn-only baselines, and acceptance evidence.
 **Requirement Refs**: FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-007, FR-008, FR-009, FR-010, FR-011, FR-012  
 **Dependencies**: WP01, WP02, WP03, WP04
 
-- [ ] T014 Add Phase 8 acceptance evidence document.
-- [ ] T015 Run benchmark presets and full validation.
-- [ ] T016 Close integration gaps and update Spec Kitty notes.
+- [x] T014 Add Phase 8 acceptance evidence document.
+- [x] T015 Run benchmark presets and full validation.
+- [x] T016 Close integration gaps and update Spec Kitty notes.
 
 ## Acceptance Handoff
 
