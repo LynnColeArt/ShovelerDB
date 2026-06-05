@@ -24,6 +24,7 @@ the parts of the SQL/database model that fit local agent memory workloads.
 ## Repository Layout
 
 - `docs/`: proposal, project plan, and dialect notes.
+- `include/`: public C ABI headers for future language connectors.
 - `src/`: Zig source for the engine and CLI.
 - `tests/`: ShovelerDB-native tests.
 - `references/mariadb/`: curated MariaDB test and license references.
@@ -35,8 +36,10 @@ ShovelerDB has a working embedded Zig engine and CLI with SQL parsing and
 execution, transactions, durable checkpoint/reopen, exact vector ranking,
 constrained views and procedures, snapshot-reader concurrency, ordered writes,
 adapted fixture smokes, and an allocation-aware benchmark harness. Phase 8
-performance discipline is complete; the next planned phase is language
-connectors and embedding SDKs.
+performance discipline is complete. Phase 9 is active on the embedding ABI
+foundation: the current slice defines the small C boundary that future language
+connectors will share, while full Go, Python, Java, PHP, TypeScript/Node, .NET,
+and Rust packages remain follow-up work.
 
 ## First Commands
 
