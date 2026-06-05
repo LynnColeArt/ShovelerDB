@@ -1,7 +1,7 @@
 {
-  "event_count": 13,
-  "last_event_id": "01KTAT3N5JNH2YF50RG9ZC2692",
-  "materialized_at": "2026-06-05T02:34:31.475032+00:00",
+  "event_count": 14,
+  "last_event_id": "01KTAT9TZDZFRJE39HWG7AM9GS",
+  "materialized_at": "2026-06-05T02:37:54.029826+00:00",
   "mission_number": "",
   "mission_slug": "phase9-embedding-abi-foundation-01KTAQXB",
   "mission_type": "software-dev",
@@ -11,9 +11,9 @@
     "canceled": 0,
     "claimed": 0,
     "done": 1,
-    "for_review": 1,
+    "for_review": 0,
     "in_progress": 0,
-    "in_review": 0,
+    "in_review": 1,
     "planned": 3
   },
   "work_packages": {
@@ -25,11 +25,11 @@
       "last_transition_at": "2026-06-05T02:18:43.938793+00:00"
     },
     "WP02": {
-      "actor": "codex:gpt-5:implementer-ivan:implementer",
+      "actor": "user",
       "force_count": 1,
-      "lane": "for_review",
-      "last_event_id": "01KTAT3N5JNH2YF50RG9ZC2692",
-      "last_transition_at": "2026-06-05T02:34:31.475032+00:00"
+      "lane": "in_review",
+      "last_event_id": "01KTAT9TZDZFRJE39HWG7AM9GS",
+      "last_transition_at": "2026-06-05T02:37:54.029826+00:00"
     },
     "WP03": {
       "actor": "codex:gpt-5:implementer-ivan:implementer",
