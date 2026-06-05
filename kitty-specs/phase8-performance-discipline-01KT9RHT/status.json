@@ -1,16 +1,16 @@
 {
-  "event_count": 32,
-  "last_event_id": "01KTANNT8R1TRCN3S8TGWM69A6",
-  "materialized_at": "2026-06-05T01:17:03.640928+00:00",
+  "event_count": 33,
+  "last_event_id": "01KTANNWQR14A2GX4Y6ZVSGATH",
+  "materialized_at": "2026-06-05T01:17:06.168741+00:00",
   "mission_number": "",
   "mission_slug": "phase8-performance-discipline-01KT9RHT",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 1,
+    "approved": 0,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 4,
+    "done": 5,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
@@ -47,10 +47,10 @@
     },
     "WP05": {
       "actor": "user",
-      "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KTAN638975ZD6EPH4HT0ZK0Z",
-      "last_transition_at": "2026-06-05T01:09:53.000000+00:00"
+      "force_count": 2,
+      "lane": "done",
+      "last_event_id": "01KTANNWQR14A2GX4Y6ZVSGATH",
+      "last_transition_at": "2026-06-05T01:17:06.168741+00:00"
     }
   }
 }
