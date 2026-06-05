@@ -2,16 +2,16 @@
 
 Current roadmap position: the MVP SQL/vector memory kernel mission completed on
 2026-06-01, the MySQL-style syntax-completion mission completed on 2026-06-02,
-the scalable concurrency mission completed on 2026-06-02, and Phase 7 views and
-procedures hardening completed on 2026-06-04. ShovelerDB now has a Zig
-library/CLI, SQL policy and parser, in-memory row storage, transaction
-sessions, basic DDL/DML execution, joins, CTEs, derived tables,
-grouping/aggregates, constrained persistent views and procedures, vector
-values/helpers, SQL vector ranking, snapshot persistence, stable reader
-snapshots, ordered writer commits, adapted fixture descriptors, CLI smokes, and
-benchmark coverage. The active follow-up mission is
-`phase8-performance-discipline-01KT9RHT`, which turns the existing benchmark
-surface into a documented, structured, allocation-aware performance practice.
+the scalable concurrency mission completed on 2026-06-02, Phase 7 views and
+procedures hardening completed on 2026-06-04, and Phase 8 performance
+discipline completed on 2026-06-05. ShovelerDB now has a Zig library/CLI, SQL
+policy and parser, in-memory row storage, transaction sessions, basic DDL/DML
+execution, joins, CTEs, derived tables, grouping/aggregates, constrained
+persistent views and procedures, vector values/helpers, SQL vector ranking,
+snapshot persistence, stable reader snapshots, ordered writer commits, adapted
+fixture descriptors, CLI smokes, benchmark coverage, stable benchmark presets,
+JSON benchmark output, allocation visibility, and warn-only baseline guidance.
+The next planned mission is Phase 9 language connectors and embedding SDKs.
 
 ## Phase 0: Repository Foundation
 
@@ -131,9 +131,7 @@ Exit criteria:
 
 ## Phase 6: Concurrency Model
 
-Status: started; the first MVCC correctness slice is complete, and the active
-follow-up mission `phase6-scalable-concurrency-01KT53SK` covers the scalable
-operational pieces.
+Status: complete for the scalable embedded concurrency model.
 
 Goal: make ShovelerDB useful as an agent memory kernel.
 
@@ -182,10 +180,11 @@ Exit criteria:
 
 ## Phase 8: Performance Discipline
 
-Status: in progress; mission `phase8-performance-discipline-01KT9RHT` has
-added stable benchmark presets, JSON output, allocation visibility, missing
-hot-path workload metrics, and warn-only baseline guidance. Hard timing gates
-remain deferred until benchmark variance is understood on stable CI hardware.
+Status: complete. Mission `phase8-performance-discipline-01KT9RHT` added
+stable benchmark presets, JSON output, allocation visibility, missing hot-path
+workload metrics, acceptance evidence, post-merge review, and warn-only
+baseline guidance. Hard timing gates remain deferred until benchmark variance
+is understood on stable CI hardware.
 
 Goal: make speed measurable from the beginning.
 

@@ -13,7 +13,8 @@ the parts of the SQL/database model that fit local agent memory workloads.
 - Embedded first: no daemon required.
 - MariaDB-like SQL dialect where useful.
 - Transactions, tables, views, and stored procedures are core features.
-- Vector columns, vector functions, and vector indexes are core features.
+- Vector columns and vector functions are core features; vector index/planner
+  optimization remains a future engine phase.
 - No foreign keys.
 - No user-visible temporary tables.
 - No replication, binlog, storage engine selection, or plugin ecosystem.
@@ -23,15 +24,19 @@ the parts of the SQL/database model that fit local agent memory workloads.
 ## Repository Layout
 
 - `docs/`: proposal, project plan, and dialect notes.
-- `src/`: Zig source for the future engine and CLI.
+- `src/`: Zig source for the engine and CLI.
 - `tests/`: ShovelerDB-native tests.
 - `references/mariadb/`: curated MariaDB test and license references.
 - `tools/`: future import/classification tooling for MariaDB tests.
 
 ## Status
 
-This repository is an early build scaffold. The engine does not exist yet, but
-the first dialect-policy code is in place.
+ShovelerDB has a working embedded Zig engine and CLI with SQL parsing and
+execution, transactions, durable checkpoint/reopen, exact vector ranking,
+constrained views and procedures, snapshot-reader concurrency, ordered writes,
+adapted fixture smokes, and an allocation-aware benchmark harness. Phase 8
+performance discipline is complete; the next planned phase is language
+connectors and embedding SDKs.
 
 ## First Commands
 
@@ -39,15 +44,17 @@ the first dialect-policy code is in place.
 zig build test
 zig build run
 zig build run -- check-sql "CREATE TABLE memories (id INTEGER PRIMARY KEY, embedding VECTOR(4));"
+zig build run -- benchmark --preset local-smoke
+zig build run -- benchmark --preset acceptance-smoke --format json
 zig build run -- analyze-test references/mariadb/mysql-test/main/vector.test
 zig build run -- classify-test references/mariadb/mysql-test/main/sp-fib.test
 zig build run -- classify-test $(find references/mariadb -name '*.test' | sort)
 ```
 
-The `check-sql` command currently performs a lightweight dialect-policy pass. It
-accepts the intended ShovelerDB surface and rejects early non-goals such as
-foreign keys, user-visible temporary tables, storage engine selection,
-replication/binlog statements, grants/users, and plugins.
+The `check-sql` command performs a lightweight dialect-policy pass. It accepts
+the intended ShovelerDB surface and rejects non-goals such as foreign keys,
+user-visible temporary tables, storage engine selection, replication/binlog
+statements, grants/users, and plugins.
 
 The `analyze-test` command performs a first-pass analysis of imported MariaDB
 `.test` files. It counts candidate SQL statements, MTR directives, harness

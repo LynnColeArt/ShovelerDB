@@ -64,7 +64,7 @@ Phase 8 accepts these stable metric names:
 | FR-008 | pass | `src/cli/benchmark_workloads.zig` preserves Phase 6 metric names: `snapshot_begin`, `queued_commit`, `concurrent_read_write`, `checkpoint_overlap`, and `vector_overlay_visibility`; tests and CLI smokes validate they still appear. |
 | FR-009 | pass | `tests/integration/benchmark_output_acceptance.zig` and `tests/integration/benchmark_workload_acceptance.zig` validate JSON shape, metric names, counts, and allocation fields without asserting absolute timings. |
 | FR-010 | pass | `docs/performance-baselines.json` records warn-only preset counts and advisory delta thresholds with `hard_ci_gate: false`. |
-| FR-011 | pass | `docs/project-plan.md` now describes Phase 8 as in progress with presets, JSON, allocation visibility, workload metrics, and warn-only baseline guidance. |
+| FR-011 | pass | `docs/project-plan.md` now describes Phase 8 as complete with presets, JSON, allocation visibility, workload metrics, acceptance evidence, post-merge review, and warn-only baseline guidance. |
 | FR-012 | pass | `zig build test` passes with the full SQL, transaction, persistence, vector, view/procedure, adapted fixture, concurrency, and benchmark integration suites. |
 
 ## Accepted State
