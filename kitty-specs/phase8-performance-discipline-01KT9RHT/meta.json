@@ -9,5 +9,22 @@
   "purpose_context": "This mission advances phase8 performance discipline on main so stakeholders can track the work from mission creation onward.",
   "purpose_tldr": "phase8 performance discipline",
   "slug": "phase8-performance-discipline-01KT9RHT",
-  "target_branch": "main"
+  "target_branch": "main",
+  "baseline_merge_commit": "b704b8fa02c661fd574cec01f75b4901aa7b2408",
+  "merged_at": "2026-06-05T01:18:43Z",
+  "merged_by": "lynn",
+  "merged_into": "main",
+  "merged_strategy": "manual_fast_forward_after_stale_lane_guard",
+  "merged_push": false,
+  "merged_commit": "c3111307520632d5548220b6cc43f4bab0955d46",
+  "merge_history": [
+    {
+      "merged_at": "2026-06-05T01:18:43Z",
+      "merged_by": "lynn",
+      "merged_into": "main",
+      "merged_strategy": "manual_fast_forward_after_stale_lane_guard",
+      "merged_push": false,
+      "merged_commit": "c3111307520632d5548220b6cc43f4bab0955d46"
+    }
+  ]
 }
