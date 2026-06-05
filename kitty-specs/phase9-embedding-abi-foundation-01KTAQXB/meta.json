@@ -13,6 +13,7 @@
   "accepted_at": "2026-06-05T03:15:40.950180+00:00",
   "accepted_by": "codex:gpt-5",
   "accepted_from_commit": "9370dd8082b6525d90becab0252f0c78475716dc",
+  "baseline_merge_commit": "3319c7db474919a24f1e566b6bc64399b5643806",
   "coordination_branch": "kitty/mission-phase9-embedding-abi-foundation-01KTAQXB",
   "created_at": "2026-06-05T01:56:07.947250+00:00",
   "friendly_name": "phase9 embedding abi foundation",
