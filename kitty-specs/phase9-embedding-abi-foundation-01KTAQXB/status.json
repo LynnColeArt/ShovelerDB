@@ -2,7 +2,7 @@
   "event_count": 34,
   "last_event_id": "01KTAW5KA6KDVFNRH0SQ6KV5QM",
   "materialized_at": "2026-06-05T03:10:32.263021+00:00",
-  "mission_number": "",
+  "mission_number": "2",
   "mission_slug": "phase9-embedding-abi-foundation-01KTAQXB",
   "mission_type": "software-dev",
   "summary": {
