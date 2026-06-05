@@ -2,117 +2,117 @@
   "mission_slug": "phase9-embedding-abi-foundation-01KTAQXB",
   "mission_number": "",
   "mission_type": "software-dev",
-  "overall_verdict": "pending",
+  "overall_verdict": "pass",
   "criteria": [
     {
       "criterion_id": "FR-001",
-      "description": "Verify FR-001 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "Document ABI purpose, handle lifecycle, threading, ownership, error model, result iteration, vector representation, and connector fixture contract.",
+      "proof_type": "documentation",
+      "evidence": "docs/embedding-abi.md covers versioning, handles, lifecycle, ownership, SQL execution, result iteration, value model, diagnostics, threading/concurrency, and connector fixtures.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-06-05T03:14:11Z",
+      "notes": "FR coverage is also mapped in docs/acceptance-phase9-embedding-abi.md."
     },
     {
       "criterion_id": "FR-002",
-      "description": "Verify FR-002 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "Add a C ABI module and header with opaque handles, row/value access, and status reporting.",
+      "proof_type": "code_review",
+      "evidence": "include/shovelerdb.h declares opaque database/result/row handles, status and diagnostic enums, view structs, lifecycle, execution, result, value, and diagnostic symbols; src/abi/c_api.zig exports the matching ABI.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-06-05T03:14:11Z",
+      "notes": "The C header syntax check passed with cc -x c -std=c99 -Wall -Wextra -pedantic -fsyntax-only."
     },
     {
       "criterion_id": "FR-003",
-      "description": "Verify FR-003 is satisfied",
+      "description": "Support open-or-create and close for filesystem-backed embedded databases without requiring a daemon or global singleton.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "shovelerdb_open_or_create, shovelerdb_checkpoint, and shovelerdb_close are implemented in src/abi/c_api.zig and src/abi/handles.zig; tests/integration/abi_acceptance.zig opens, checkpoints, closes, reopens, and verifies persisted rows.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-06-05T03:14:11Z",
+      "notes": "Validated by zig build test."
     },
     {
       "criterion_id": "FR-004",
-      "description": "Verify FR-004 is satisfied",
+      "description": "Support SQL execution through the ABI for DDL, DML, transaction statements, and SELECT queries over the accepted dialect.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "shovelerdb_execute routes through the embedded SQL path; tests/integration/abi_acceptance.zig executes CREATE TABLE, BEGIN, INSERT, COMMIT, vector-ranking SELECT, and persistence verification SELECT through the ABI.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-06-05T03:14:11Z",
+      "notes": "Validated by zig build test."
     },
     {
       "criterion_id": "FR-005",
-      "description": "Verify FR-005 is satisfied",
+      "description": "Expose result metadata and row/value iteration for null, integer, float, boolean, text, blob, and float32 vector values.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "include/shovelerdb.h declares result metadata, row iteration, value-kind, scalar, text/blob, and vector accessors; src/abi/result.zig and src/abi/value_access.zig implement the value layer; tests/integration/abi_acceptance.zig reads integer, text, float, and vector values and checks mismatched accessor type status.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-06-05T03:14:11Z",
+      "notes": "The value model is documented in docs/embedding-abi.md."
     },
     {
       "criterion_id": "FR-006",
-      "description": "Verify FR-006 is satisfied",
+      "description": "Make ABI-owned results and borrowed string/value views explicitly tied to releasable result/database lifetimes with no caller responsibility for Zig allocators.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "shovelerdb_result_release handles result cleanup and null release; tests/integration/abi_acceptance.zig exercises result release and null release; docs/embedding-abi.md and docs/connector-fixtures.md document borrowed text, blob, vector, row, and diagnostic lifetimes.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-06-05T03:14:11Z",
+      "notes": "Connectors copy borrowed views only when host-runtime lifetime requires it."
     },
     {
       "criterion_id": "FR-007",
-      "description": "Verify FR-007 is satisfied",
+      "description": "Expose stable ABI diagnostic/status codes for parser, object, transaction, type, vector, persistence, invalid-handle, and allocation failures.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "include/shovelerdb.h declares status and diagnostic enums; src/abi/diagnostics.zig centralizes status mapping and messages; tests/integration/abi_acceptance.zig validates vector-error diagnostics and invalid-handle checkpoint status.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-06-05T03:14:11Z",
+      "notes": "shovelerdb_status_diagnostic_code, shovelerdb_status_message, and shovelerdb_database_last_diagnostic are exported from src/abi/c_api.zig."
     },
     {
       "criterion_id": "FR-008",
-      "description": "Verify FR-008 is satisfied",
+      "description": "Add an ABI acceptance smoke covering open, table creation, transaction inserts, vector ranking, typed error, checkpoint/close/reopen, and persistence verification.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "tests/integration/abi_acceptance.zig covers the full connector lifecycle and build.zig wires it into zig build test.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-06-05T03:14:11Z",
+      "notes": "Validated by zig build test on the integrated mission branch and on main after WP05 merge."
     },
     {
       "criterion_id": "FR-009",
-      "description": "Verify FR-009 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "Add connector fixture documentation that future language packages can reuse without duplicating behavior assumptions.",
+      "proof_type": "documentation",
+      "evidence": "docs/connector-fixtures.md defines the shared connector fixture and points to tests/integration/abi_acceptance.zig, docs/embedding-abi.md, and include/shovelerdb.h.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-06-05T03:14:11Z",
+      "notes": "The fixture explicitly rejects daemon, network, auth, replication, plugin, and storage-engine requirements."
     },
     {
       "criterion_id": "FR-010",
-      "description": "Verify FR-010 is satisfied",
+      "description": "Keep existing SQL, transaction, persistence, view/procedure, vector, concurrency, adapted fixture, and benchmark tests passing.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "zig build test passed after all Phase 9 WPs were integrated; the build includes library, CLI, integration, adapted fixture, vector, concurrency, and benchmark suites wired in build.zig.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-06-05T03:14:11Z",
+      "notes": "Additional checks passed: zig fmt --check, git diff --check, and C header syntax compile."
     },
     {
       "criterion_id": "FR-011",
-      "description": "Verify FR-011 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "Refresh roadmap and README status so Phase 9 is active only for the ABI foundation, not every language connector package.",
+      "proof_type": "documentation",
+      "evidence": "README.md and docs/project-plan.md describe Phase 9 as active for the embedding ABI foundation and call out full language connector packages as follow-up work.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-06-05T03:14:11Z",
+      "notes": "docs/acceptance-phase9-embedding-abi.md preserves the same scope boundary."
     }
   ],
   "negative_invariants": []
