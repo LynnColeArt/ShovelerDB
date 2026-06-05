@@ -116,6 +116,9 @@ SHOVELERDB_API uint64_t shovelerdb_result_mutation_count(
 SHOVELERDB_API size_t shovelerdb_result_column_count(
     const shovelerdb_result *result
 );
+SHOVELERDB_API size_t shovelerdb_result_row_count(
+    const shovelerdb_result *result
+);
 SHOVELERDB_API shovelerdb_status shovelerdb_result_column_name(
     const shovelerdb_result *result,
     size_t column_index,

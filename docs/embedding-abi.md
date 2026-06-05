@@ -93,6 +93,7 @@ mode compatibility remain rejected by design.
 Connectors inspect result metadata before iterating:
 
 - `shovelerdb_result_column_count`
+- `shovelerdb_result_row_count`
 - `shovelerdb_result_column_name`
 - `shovelerdb_result_kind_of`
 - `shovelerdb_result_mutation_count`
