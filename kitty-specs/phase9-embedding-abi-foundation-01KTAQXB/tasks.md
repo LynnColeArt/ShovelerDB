@@ -85,9 +85,9 @@ packages remain follow-up missions.
 **Requirement Refs**: FR-001, FR-008, FR-009, FR-010, FR-011  
 **Dependencies**: WP01, WP02, WP03, WP04
 
-- [ ] T013 Add shared connector fixture documentation.
-- [ ] T014 Add Phase 9 acceptance evidence document.
-- [ ] T015 Run full validation and record Spec Kitty workflow notes if new anomalies appear.
+- [x] T013 Add shared connector fixture documentation.
+- [x] T014 Add Phase 9 acceptance evidence document.
+- [x] T015 Run full validation and record Spec Kitty workflow notes if new anomalies appear.
 
 ## Acceptance Handoff
 
