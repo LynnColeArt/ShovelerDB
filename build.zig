@@ -23,6 +23,14 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    const benchmark_workloads_module = b.createModule(.{
+        .root_source_file = b.path("src/cli/benchmark_workloads.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "shovelerdb", .module = lib_module },
+        },
+    });
 
     const integration_module = b.createModule(.{
         .root_source_file = b.path("tests/integration/kernel_acceptance.zig"),
@@ -144,6 +152,15 @@ pub fn build(b: *std.Build) void {
             .{ .name = "benchmark_metrics", .module = benchmark_metrics_module },
         },
     });
+    const benchmark_workload_integration_module = b.createModule(.{
+        .root_source_file = b.path("tests/integration/benchmark_workload_acceptance.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "benchmark_metrics", .module = benchmark_metrics_module },
+            .{ .name = "benchmark_workloads", .module = benchmark_workloads_module },
+        },
+    });
     const adapted_fixture_integration_module = b.createModule(.{
         .root_source_file = b.path("tests/adapted_fixture_acceptance.zig"),
         .target = target,
@@ -220,6 +237,9 @@ pub fn build(b: *std.Build) void {
     const benchmark_output_integration_tests = b.addTest(.{
         .root_module = benchmark_output_integration_module,
     });
+    const benchmark_workload_integration_tests = b.addTest(.{
+        .root_module = benchmark_workload_integration_module,
+    });
     const adapted_fixture_integration_tests = b.addTest(.{
         .root_module = adapted_fixture_integration_module,
     });
@@ -241,6 +261,7 @@ pub fn build(b: *std.Build) void {
     const run_checkpoint_vector_overlay_integration_tests = b.addRunArtifact(checkpoint_vector_overlay_integration_tests);
     const run_concurrency_stress_integration_tests = b.addRunArtifact(concurrency_stress_integration_tests);
     const run_benchmark_output_integration_tests = b.addRunArtifact(benchmark_output_integration_tests);
+    const run_benchmark_workload_integration_tests = b.addRunArtifact(benchmark_workload_integration_tests);
     const run_adapted_fixture_integration_tests = b.addRunArtifact(adapted_fixture_integration_tests);
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_lib_tests.step);
@@ -260,5 +281,6 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_checkpoint_vector_overlay_integration_tests.step);
     test_step.dependOn(&run_concurrency_stress_integration_tests.step);
     test_step.dependOn(&run_benchmark_output_integration_tests.step);
+    test_step.dependOn(&run_benchmark_workload_integration_tests.step);
     test_step.dependOn(&run_adapted_fixture_integration_tests.step);
 }

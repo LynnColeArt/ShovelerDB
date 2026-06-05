@@ -1,5 +1,6 @@
 const std = @import("std");
 const benchmark_metrics = @import("benchmark_metrics.zig");
+const benchmark_workloads = @import("benchmark_workloads.zig");
 const shovelerdb = @import("shovelerdb");
 
 const executor = shovelerdb.db.executor;
@@ -10,6 +11,7 @@ const BenchmarkConfig = benchmark_metrics.BenchmarkConfig;
 const BenchmarkReport = benchmark_metrics.BenchmarkReport;
 const Metric = benchmark_metrics.Metric;
 const NearestSummary = benchmark_metrics.NearestSummary;
+const metric_names = benchmark_workloads.metric_names;
 
 pub const BenchmarkError = error{
     InvalidOption,
@@ -151,6 +153,22 @@ pub fn run(
     const joined_elapsed = elapsedSince(io, joined_start);
     const joined_allocations = allocation_counter.delta(joined_allocations_start);
 
+    const point_lookup_ops = @min(options.operations, options.rows);
+    const point_lookup_allocations_start = allocation_counter.snapshot();
+    const point_lookup_start = now(io);
+    for (0..point_lookup_ops) |index| {
+        const statement = try std.fmt.allocPrint(
+            benchmark_allocator,
+            "SELECT id, body, score FROM scalar_memory WHERE id = {d} LIMIT 1;",
+            .{(index % options.rows) + 1},
+        );
+        defer benchmark_allocator.free(statement);
+        result = try db.executeSql(&session, statement);
+        result.deinit(benchmark_allocator);
+    }
+    const point_lookup_elapsed = elapsedSince(io, point_lookup_start);
+    const point_lookup_allocations = allocation_counter.delta(point_lookup_allocations_start);
+
     const rollback_allocations_start = allocation_counter.snapshot();
     const rollback_start = now(io);
     result = try db.executeSql(&session, "BEGIN;");
@@ -198,6 +216,33 @@ pub fn run(
     const sql_vector_elapsed = elapsedSince(io, sql_vector_start);
     const sql_vector_allocations = allocation_counter.delta(sql_vector_allocations_start);
 
+    const hybrid_query_vector_literal = try makeSqlVectorLiteral(benchmark_allocator, options.dimensions, 1);
+    defer benchmark_allocator.free(hybrid_query_vector_literal);
+    const hybrid_vector_query = try std.fmt.allocPrint(
+        benchmark_allocator,
+        "SELECT v.id, l2_distance(v.embedding, {s}) AS distance FROM vector_memory AS v JOIN memory_tags AS t ON t.memory_id = v.id WHERE t.name = 'project' ORDER BY distance ASC LIMIT 10;",
+        .{hybrid_query_vector_literal},
+    );
+    defer benchmark_allocator.free(hybrid_vector_query);
+    const hybrid_candidate_count = @min(options.vectors, options.rows);
+    const hybrid_allocations_start = allocation_counter.snapshot();
+    const hybrid_start = now(io);
+    result = try db.executeSql(&session, hybrid_vector_query);
+    result.deinit(benchmark_allocator);
+    const hybrid_elapsed = elapsedSince(io, hybrid_start);
+    const hybrid_allocations = allocation_counter.delta(hybrid_allocations_start);
+
+    const persistence_ops = @min(options.operations, @as(usize, 64));
+    const persistence_allocations_start = allocation_counter.snapshot();
+    const persistence_start = now(io);
+    const persistence_count = try benchmark_workloads.runPersistenceCheckpointReopen(
+        benchmark_allocator,
+        io,
+        persistence_ops,
+    );
+    const persistence_elapsed = elapsedSince(io, persistence_start);
+    const persistence_allocations = allocation_counter.delta(persistence_allocations_start);
+
     const phase6_ops = @min(options.operations, options.rows);
     const snapshot_begin_allocations_start = allocation_counter.snapshot();
     const snapshot_begin_start = now(io);
@@ -230,18 +275,21 @@ pub fn run(
     const vector_overlay_allocations = allocation_counter.delta(vector_overlay_allocations_start);
 
     const metrics = [_]Metric{
-        metric("insert_commit", options.rows, insert_elapsed, insert_allocations),
-        metric("select_scan", options.rows, scan_elapsed, scan_allocations),
-        metric("grouped_scan", options.rows, grouped_elapsed, grouped_allocations),
-        metric("joined_filter", options.rows, joined_elapsed, joined_allocations),
-        metric("rollback_updates", rollback_ops, rollback_elapsed, rollback_allocations),
-        metric("exact_vector_scan", options.vectors, vector_elapsed, vector_allocations),
-        metric("sql_vector_rank", options.vectors, sql_vector_elapsed, sql_vector_allocations),
-        metric("snapshot_begin", phase6_ops, snapshot_begin_elapsed, snapshot_begin_allocations),
-        metric("queued_commit", phase6_ops, queued_commit_elapsed, queued_commit_allocations),
-        metric("concurrent_read_write", phase6_ops, concurrent_elapsed, concurrent_allocations),
-        metric("checkpoint_overlap", checkpoint_overlap_count, checkpoint_overlap_elapsed, checkpoint_overlap_allocations),
-        metric("vector_overlay_visibility", vector_overlay_count, vector_overlay_elapsed, vector_overlay_allocations),
+        metric(metric_names.insert_commit, options.rows, insert_elapsed, insert_allocations),
+        metric(metric_names.select_scan, options.rows, scan_elapsed, scan_allocations),
+        metric(metric_names.grouped_scan, options.rows, grouped_elapsed, grouped_allocations),
+        metric(metric_names.joined_filter, options.rows, joined_elapsed, joined_allocations),
+        metric(metric_names.point_lookup, point_lookup_ops, point_lookup_elapsed, point_lookup_allocations),
+        metric(metric_names.rollback_updates, rollback_ops, rollback_elapsed, rollback_allocations),
+        metric(metric_names.exact_vector_scan, options.vectors, vector_elapsed, vector_allocations),
+        metric(metric_names.sql_vector_rank, options.vectors, sql_vector_elapsed, sql_vector_allocations),
+        metric(metric_names.hybrid_filter_vector_rank, hybrid_candidate_count, hybrid_elapsed, hybrid_allocations),
+        metric(metric_names.persistence_checkpoint_reopen, persistence_count, persistence_elapsed, persistence_allocations),
+        metric(metric_names.snapshot_begin, phase6_ops, snapshot_begin_elapsed, snapshot_begin_allocations),
+        metric(metric_names.queued_commit, phase6_ops, queued_commit_elapsed, queued_commit_allocations),
+        metric(metric_names.concurrent_read_write, phase6_ops, concurrent_elapsed, concurrent_allocations),
+        metric(metric_names.checkpoint_overlap, checkpoint_overlap_count, checkpoint_overlap_elapsed, checkpoint_overlap_allocations),
+        metric(metric_names.vector_overlay_visibility, vector_overlay_count, vector_overlay_elapsed, vector_overlay_allocations),
     };
     const nearest_summary: ?NearestSummary = if (nearest.len > 0)
         .{ .key = nearest[0].key, .distance = nearest[0].distance }
