@@ -11,7 +11,8 @@ persistent views and procedures, vector values/helpers, SQL vector ranking,
 snapshot persistence, stable reader snapshots, ordered writer commits, adapted
 fixture descriptors, CLI smokes, benchmark coverage, stable benchmark presets,
 JSON benchmark output, allocation visibility, and warn-only baseline guidance.
-The next planned mission is Phase 9 language connectors and embedding SDKs.
+The active mission is Phase 9 ABI foundation work for future language
+connectors and embedding SDKs.
 
 ## Phase 0: Repository Foundation
 
@@ -210,7 +211,9 @@ Exit criteria:
 
 ## Phase 9: Language Connectors and Embedding SDKs
 
-Status: planned.
+Status: active for ABI foundation. Mission
+`phase9-embedding-abi-foundation-01KTAQXB` is defining the connector-facing C
+boundary before full language connector packages are implemented.
 
 Goal: make ShovelerDB easy to embed from the agent stacks people actually use
 without turning the database into a server product. Phase 6 defines the core
@@ -221,19 +224,22 @@ Tasks:
 
 - Define a stable C ABI for opening databases, running transactions, iterating
   results, reporting typed errors, and releasing caller-owned resources.
-- Add connector packages for Go, Python, Java, PHP, TypeScript/Node, .NET, and
-  Rust.
+- Add the shared ABI documentation and checked-in C header that all connectors
+  must use.
 - Keep connector behavior pinned to shared acceptance fixtures instead of
   dialect-specific hand tests.
 - Document memory ownership, transaction lifetime, vector value encoding, and
-  error mapping for each binding.
-- Add connector smoke tests that can run against the same local filesystem
-  database fixture.
+  error mapping at the ABI boundary.
+- Add connector smoke fixture documentation that can later run against the same
+  local filesystem database fixture.
+- Follow-up work will add connector packages for Go, Python, Java, PHP,
+  TypeScript/Node, .NET, and Rust once the ABI foundation is implemented and
+  accepted.
 
 Exit criteria:
 
-- Each supported connector can open a database, create a table, insert rows,
-  run a transaction, execute a vector query, report a typed error, and close
-  cleanly.
+- A connector-facing ABI can open a database, create a table, insert rows, run
+  a transaction, execute a vector query, report a typed error, and close
+  cleanly through the shared C boundary.
 - Shared connector fixtures prevent drift between the Zig core and language
   bindings.
