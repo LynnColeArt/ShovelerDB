@@ -30,6 +30,7 @@ pub const db = struct {
 
 pub const abi = struct {
     pub const c_api = @import("abi/c_api.zig");
+    pub const diagnostics = @import("abi/diagnostics.zig");
     pub const handles = @import("abi/handles.zig");
     pub const result = @import("abi/result.zig");
     pub const value_access = @import("abi/value_access.zig");
@@ -101,6 +102,7 @@ test {
     std.testing.refAllDecls(db.persistence);
     std.testing.refAllDecls(db.database);
     std.testing.refAllDecls(abi.c_api);
+    std.testing.refAllDecls(abi.diagnostics);
     std.testing.refAllDecls(abi.handles);
     std.testing.refAllDecls(abi.result);
     std.testing.refAllDecls(abi.value_access);
