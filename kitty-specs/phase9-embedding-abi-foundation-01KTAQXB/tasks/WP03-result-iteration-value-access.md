@@ -67,3 +67,4 @@ for ABI-owned result handles.
 - 2026-06-05T02:41:21Z – codex:gpt-5:implementer-ivan:implementer – Moved to in_progress
 - 2026-06-05T02:48:35Z – codex:gpt-5:implementer-ivan:implementer – Moved to for_review
 - 2026-06-05T02:49:36Z – codex:gpt-5:reviewer-renata:reviewer – Review passed: result row count, iteration, scalar/text/blob/vector value access, borrowed lifetime docs, and header wiring satisfy WP03 scope. Validation: zig build test, zig fmt --check, git diff --check, C header syntax compile.
+- 2026-06-05T02:50:49Z – codex:gpt-5:implementer-ivan:implementer – Done: WP03 merged to main with row count, result iteration, typed scalar/text/blob/vector access, and borrowed-lifetime docs/header wiring. Validation on main: zig build test, zig fmt --check, git diff --check, C header syntax compile.
