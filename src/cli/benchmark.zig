@@ -10,11 +10,42 @@ pub const BenchmarkError = error{
     MissingOptionValue,
 };
 
+pub const OutputFormat = enum {
+    text,
+    json,
+
+    fn parse(raw: []const u8) !OutputFormat {
+        if (std.mem.eql(u8, raw, "text")) return .text;
+        if (std.mem.eql(u8, raw, "json")) return .json;
+        return error.InvalidOption;
+    }
+};
+
+pub const Preset = enum {
+    local_smoke,
+    acceptance_smoke,
+
+    fn parse(raw: []const u8) !Preset {
+        if (std.mem.eql(u8, raw, "local-smoke")) return .local_smoke;
+        if (std.mem.eql(u8, raw, "acceptance-smoke")) return .acceptance_smoke;
+        return error.InvalidOption;
+    }
+
+    fn label(self: Preset) []const u8 {
+        return switch (self) {
+            .local_smoke => "local-smoke",
+            .acceptance_smoke => "acceptance-smoke",
+        };
+    }
+};
+
 pub const Options = struct {
     rows: usize = 10_000,
     vectors: usize = 1_000,
     dimensions: usize = 128,
     operations: usize = 1_000,
+    format: OutputFormat = .text,
+    preset: ?Preset = null,
 };
 
 pub fn parseOptions(args: []const []const u8) !Options {
@@ -34,7 +65,7 @@ pub fn parseOptions(args: []const []const u8) !Options {
 
 pub fn printUsage(writer: *std.Io.Writer) !void {
     try writer.print(
-        \\usage: shoveler benchmark [--rows N] [--vectors N] [--dimensions N] [--operations N]
+        \\usage: shoveler benchmark [--preset local-smoke|acceptance-smoke] [--format text|json] [--rows N] [--vectors N] [--dimensions N] [--operations N]
         \\       defaults: --rows 10000 --vectors 1000 --dimensions 128 --operations 1000
         \\
     , .{});
@@ -49,12 +80,6 @@ pub fn run(
     if (options.rows == 0 or options.vectors == 0 or options.dimensions == 0 or options.operations == 0) {
         return error.InvalidOption;
     }
-
-    try writer.print("benchmark\n", .{});
-    try writer.print("  rows: {d}\n", .{options.rows});
-    try writer.print("  vectors: {d}\n", .{options.vectors});
-    try writer.print("  dimensions: {d}\n", .{options.dimensions});
-    try writer.print("  operations: {d}\n", .{options.operations});
 
     var db = executor.Database.init(allocator);
     defer db.deinit();
@@ -171,22 +196,30 @@ pub fn run(
     const vector_overlay_count = try runVectorOverlayVisibilityWorkload(allocator, &db, phase6_ops);
     const vector_overlay_elapsed = elapsedSince(io, vector_overlay_start);
 
-    try printMetric(writer, "insert_commit", options.rows, insert_elapsed);
-    try printMetric(writer, "select_scan", options.rows, scan_elapsed);
-    try printMetric(writer, "grouped_scan", options.rows, grouped_elapsed);
-    try printMetric(writer, "joined_filter", options.rows, joined_elapsed);
-    try printMetric(writer, "rollback_updates", rollback_ops, rollback_elapsed);
-    try printMetric(writer, "exact_vector_scan", options.vectors, vector_elapsed);
-    try printMetric(writer, "sql_vector_rank", options.vectors, sql_vector_elapsed);
-    try printMetric(writer, "snapshot_begin", phase6_ops, snapshot_begin_elapsed);
-    try printMetric(writer, "queued_commit", phase6_ops, queued_commit_elapsed);
-    try printMetric(writer, "concurrent_read_write", phase6_ops, concurrent_elapsed);
-    try printMetric(writer, "checkpoint_overlap", checkpoint_overlap_count, checkpoint_overlap_elapsed);
-    try printMetric(writer, "vector_overlay_visibility", vector_overlay_count, vector_overlay_elapsed);
-    if (nearest.len > 0) {
-        try writer.print("  nearest_key: {d}\n", .{nearest[0].key});
-        try writer.print("  nearest_distance: {d}\n", .{nearest[0].distance});
-    }
+    const metrics = [_]Metric{
+        .{ .name = "insert_commit", .count = options.rows, .elapsed = insert_elapsed },
+        .{ .name = "select_scan", .count = options.rows, .elapsed = scan_elapsed },
+        .{ .name = "grouped_scan", .count = options.rows, .elapsed = grouped_elapsed },
+        .{ .name = "joined_filter", .count = options.rows, .elapsed = joined_elapsed },
+        .{ .name = "rollback_updates", .count = rollback_ops, .elapsed = rollback_elapsed },
+        .{ .name = "exact_vector_scan", .count = options.vectors, .elapsed = vector_elapsed },
+        .{ .name = "sql_vector_rank", .count = options.vectors, .elapsed = sql_vector_elapsed },
+        .{ .name = "snapshot_begin", .count = phase6_ops, .elapsed = snapshot_begin_elapsed },
+        .{ .name = "queued_commit", .count = phase6_ops, .elapsed = queued_commit_elapsed },
+        .{ .name = "concurrent_read_write", .count = phase6_ops, .elapsed = concurrent_elapsed },
+        .{ .name = "checkpoint_overlap", .count = checkpoint_overlap_count, .elapsed = checkpoint_overlap_elapsed },
+        .{ .name = "vector_overlay_visibility", .count = vector_overlay_count, .elapsed = vector_overlay_elapsed },
+    };
+    const nearest_summary: ?NearestSummary = if (nearest.len > 0)
+        .{ .key = nearest[0].key, .distance = nearest[0].distance }
+    else
+        null;
+
+    try writeReport(writer, .{
+        .options = options,
+        .metrics = &metrics,
+        .nearest = nearest_summary,
+    });
 }
 
 fn executeAndDiscard(
@@ -383,10 +416,21 @@ fn optionName(arg: []const u8) ?[]const u8 {
     if (std.mem.eql(u8, arg, "--vectors")) return arg;
     if (std.mem.eql(u8, arg, "--dimensions")) return arg;
     if (std.mem.eql(u8, arg, "--operations")) return arg;
+    if (std.mem.eql(u8, arg, "--preset")) return arg;
+    if (std.mem.eql(u8, arg, "--format")) return arg;
     return null;
 }
 
 fn setOption(options: *Options, name: []const u8, raw_value: []const u8) !void {
+    if (std.mem.eql(u8, name, "--preset")) {
+        applyPreset(options, try Preset.parse(raw_value));
+        return;
+    }
+    if (std.mem.eql(u8, name, "--format")) {
+        options.format = try OutputFormat.parse(raw_value);
+        return;
+    }
+
     const parsed = std.fmt.parseUnsigned(usize, raw_value, 10) catch return error.InvalidOption;
     if (std.mem.eql(u8, name, "--rows")) {
         options.rows = parsed;
@@ -401,6 +445,31 @@ fn setOption(options: *Options, name: []const u8, raw_value: []const u8) !void {
     }
 }
 
+fn applyPreset(options: *Options, preset: Preset) void {
+    const format = options.format;
+    options.* = presetOptions(preset);
+    options.format = format;
+}
+
+fn presetOptions(preset: Preset) Options {
+    return switch (preset) {
+        .local_smoke => .{
+            .rows = 1_000,
+            .vectors = 256,
+            .dimensions = 16,
+            .operations = 100,
+            .preset = preset,
+        },
+        .acceptance_smoke => .{
+            .rows = 2_000,
+            .vectors = 512,
+            .dimensions = 32,
+            .operations = 200,
+            .preset = preset,
+        },
+    };
+}
+
 fn now(io: std.Io) std.Io.Timestamp {
     return std.Io.Clock.awake.now(io);
 }
@@ -409,14 +478,88 @@ fn elapsedSince(io: std.Io, start: std.Io.Timestamp) std.Io.Duration {
     return start.durationTo(now(io));
 }
 
-fn printMetric(writer: *std.Io.Writer, name: []const u8, count: usize, elapsed: std.Io.Duration) !void {
-    try writer.print("  {s}:\n", .{name});
-    try writer.print("    count: {d}\n", .{count});
-    try writer.print("    elapsed_ns: {d}\n", .{elapsed.toNanoseconds()});
-    try writer.print("    throughput_per_s: {d}\n", .{throughputPerSecond(count, elapsed)});
+const Metric = struct {
+    name: []const u8,
+    count: usize,
+    elapsed: std.Io.Duration,
+
+    fn elapsedNanoseconds(self: Metric) i96 {
+        return self.elapsed.toNanoseconds();
+    }
+
+    fn throughputPerSecond(self: Metric) u64 {
+        return computeThroughputPerSecond(self.count, self.elapsed);
+    }
+};
+
+const NearestSummary = struct {
+    key: u64,
+    distance: f64,
+};
+
+const BenchmarkReport = struct {
+    options: Options,
+    metrics: []const Metric,
+    nearest: ?NearestSummary,
+};
+
+fn writeReport(writer: *std.Io.Writer, report: BenchmarkReport) !void {
+    switch (report.options.format) {
+        .text => try writeTextReport(writer, report),
+        .json => try writeJsonReport(writer, report),
+    }
 }
 
-fn throughputPerSecond(count: usize, elapsed: std.Io.Duration) u64 {
+fn writeTextReport(writer: *std.Io.Writer, report: BenchmarkReport) !void {
+    try writer.print("benchmark\n", .{});
+    try writer.print("  rows: {d}\n", .{report.options.rows});
+    try writer.print("  vectors: {d}\n", .{report.options.vectors});
+    try writer.print("  dimensions: {d}\n", .{report.options.dimensions});
+    try writer.print("  operations: {d}\n", .{report.options.operations});
+
+    for (report.metrics) |metric| try printMetric(writer, metric);
+    if (report.nearest) |nearest| {
+        try writer.print("  nearest_key: {d}\n", .{nearest.key});
+        try writer.print("  nearest_distance: {d}\n", .{nearest.distance});
+    }
+}
+
+fn writeJsonReport(writer: *std.Io.Writer, report: BenchmarkReport) !void {
+    try writer.writeAll("{\"benchmark\":{\"preset\":");
+    if (report.options.preset) |preset| {
+        try writer.print("\"{s}\"", .{preset.label()});
+    } else {
+        try writer.writeAll("null");
+    }
+    try writer.print(
+        ",\"rows\":{d},\"vectors\":{d},\"dimensions\":{d},\"operations\":{d}",
+        .{ report.options.rows, report.options.vectors, report.options.dimensions, report.options.operations },
+    );
+    try writer.writeAll("},\"metrics\":[");
+    for (report.metrics, 0..) |metric, index| {
+        if (index > 0) try writer.writeAll(",");
+        try writer.print(
+            "{{\"name\":\"{s}\",\"count\":{d},\"elapsed_ns\":{d},\"throughput_per_s\":{d}}}",
+            .{ metric.name, metric.count, metric.elapsedNanoseconds(), metric.throughputPerSecond() },
+        );
+    }
+    try writer.writeAll("],\"nearest\":");
+    if (report.nearest) |nearest| {
+        try writer.print("{{\"key\":{d},\"distance\":{d}}}", .{ nearest.key, nearest.distance });
+    } else {
+        try writer.writeAll("null");
+    }
+    try writer.writeAll("}\n");
+}
+
+fn printMetric(writer: *std.Io.Writer, metric: Metric) !void {
+    try writer.print("  {s}:\n", .{metric.name});
+    try writer.print("    count: {d}\n", .{metric.count});
+    try writer.print("    elapsed_ns: {d}\n", .{metric.elapsedNanoseconds()});
+    try writer.print("    throughput_per_s: {d}\n", .{metric.throughputPerSecond()});
+}
+
+fn computeThroughputPerSecond(count: usize, elapsed: std.Io.Duration) u64 {
     const ns = elapsed.toNanoseconds();
     if (ns <= 0) return 0;
     const rate = (@as(u128, count) * std.time.ns_per_s) / @as(u128, @intCast(ns));
@@ -467,12 +610,33 @@ test "benchmark options parse split and inline flags" {
     try std.testing.expectEqual(@as(usize, 7), options.vectors);
     try std.testing.expectEqual(@as(usize, 3), options.dimensions);
     try std.testing.expectEqual(@as(usize, 5), options.operations);
+    try std.testing.expectEqual(OutputFormat.text, options.format);
+    try std.testing.expectEqual(@as(?Preset, null), options.preset);
+}
+
+test "benchmark options parse presets and format" {
+    const local = try parseOptions(&.{ "--preset", "local-smoke", "--format=json" });
+    try std.testing.expectEqual(@as(usize, 1_000), local.rows);
+    try std.testing.expectEqual(@as(usize, 256), local.vectors);
+    try std.testing.expectEqual(@as(usize, 16), local.dimensions);
+    try std.testing.expectEqual(@as(usize, 100), local.operations);
+    try std.testing.expectEqual(OutputFormat.json, local.format);
+    try std.testing.expectEqual(Preset.local_smoke, local.preset.?);
+
+    const overridden = try parseOptions(&.{ "--preset=acceptance-smoke", "--rows", "25" });
+    try std.testing.expectEqual(@as(usize, 25), overridden.rows);
+    try std.testing.expectEqual(@as(usize, 512), overridden.vectors);
+    try std.testing.expectEqual(@as(usize, 32), overridden.dimensions);
+    try std.testing.expectEqual(@as(usize, 200), overridden.operations);
+    try std.testing.expectEqual(Preset.acceptance_smoke, overridden.preset.?);
 }
 
 test "benchmark rejects unknown and incomplete options" {
     try std.testing.expectError(error.InvalidOption, parseOptions(&.{"--wat"}));
     try std.testing.expectError(error.MissingOptionValue, parseOptions(&.{"--rows"}));
     try std.testing.expectError(error.InvalidOption, parseOptions(&.{ "--rows", "nope" }));
+    try std.testing.expectError(error.InvalidOption, parseOptions(&.{ "--preset", "tiny" }));
+    try std.testing.expectError(error.InvalidOption, parseOptions(&.{"--format=xml"}));
 }
 
 test "benchmark sql vector literal uses requested dimensions" {
@@ -480,4 +644,53 @@ test "benchmark sql vector literal uses requested dimensions" {
     defer std.testing.allocator.free(literal);
 
     try std.testing.expectEqualStrings("[2, 3, 4, 5]", literal);
+}
+
+test "benchmark report renders JSON metrics" {
+    var output: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer output.deinit();
+
+    const metrics = [_]Metric{
+        .{ .name = "insert_commit", .count = 5, .elapsed = .fromNanoseconds(1_000) },
+        .{ .name = "snapshot_begin", .count = 2, .elapsed = .fromNanoseconds(2_000) },
+    };
+    try writeReport(&output.writer, .{
+        .options = .{
+            .rows = 5,
+            .vectors = 3,
+            .dimensions = 2,
+            .operations = 2,
+            .format = .json,
+            .preset = .local_smoke,
+        },
+        .metrics = &metrics,
+        .nearest = .{ .key = 9, .distance = 1.25 },
+    });
+
+    const rendered = output.written();
+    try std.testing.expect(try std.json.validate(std.testing.allocator, rendered));
+    try std.testing.expect(std.mem.indexOf(u8, rendered, "\"preset\":\"local-smoke\"") != null);
+    try std.testing.expect(std.mem.indexOf(u8, rendered, "\"name\":\"insert_commit\"") != null);
+    try std.testing.expect(std.mem.indexOf(u8, rendered, "\"name\":\"snapshot_begin\"") != null);
+    try std.testing.expect(std.mem.indexOf(u8, rendered, "\"throughput_per_s\"") != null);
+}
+
+test "benchmark report keeps text metric shape" {
+    var output: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer output.deinit();
+
+    const metrics = [_]Metric{
+        .{ .name = "queued_commit", .count = 4, .elapsed = .fromNanoseconds(2_000) },
+    };
+    try writeReport(&output.writer, .{
+        .options = .{ .rows = 4, .vectors = 3, .dimensions = 2, .operations = 1 },
+        .metrics = &metrics,
+        .nearest = null,
+    });
+
+    const rendered = output.written();
+    try std.testing.expect(std.mem.startsWith(u8, rendered, "benchmark\n  rows: 4\n"));
+    try std.testing.expect(std.mem.indexOf(u8, rendered, "  queued_commit:\n") != null);
+    try std.testing.expect(std.mem.indexOf(u8, rendered, "    count: 4\n") != null);
+    try std.testing.expect(std.mem.indexOf(u8, rendered, "    elapsed_ns: 2000\n") != null);
 }

@@ -74,7 +74,7 @@ pub fn printUsage(stdout: *std.Io.Writer) !void {
     try stdout.print("       shoveler analyze-test <path>\n", .{});
     try stdout.print("       shoveler classify-test <path> [path...]\n", .{});
     try stdout.print("       shoveler run-adapted-test <fixture.md>\n", .{});
-    try stdout.print("       shoveler benchmark [--rows N] [--vectors N] [--dimensions N] [--operations N]\n", .{});
+    try stdout.print("       shoveler benchmark [--preset local-smoke|acceptance-smoke] [--format text|json] [--rows N] [--vectors N] [--dimensions N] [--operations N]\n", .{});
 }
 
 fn checkSql(stdout: *std.Io.Writer, args: []const []const u8) !void {
