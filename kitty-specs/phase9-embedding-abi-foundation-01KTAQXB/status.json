@@ -1,9 +1,9 @@
 {
-  "event_count": 5,
-  "last_event_id": "01KTAR61X1V5RW76YTSQSBHPJB",
-  "materialized_at": "2026-06-05T02:00:52.897929+00:00",
+  "event_count": 0,
+  "last_event_id": null,
+  "materialized_at": "",
   "mission_number": "",
-  "mission_slug": "phase9-embedding-abi-foundation-01KTAQXB",
+  "mission_slug": "",
   "mission_type": "software-dev",
   "summary": {
     "approved": 0,
@@ -14,43 +14,7 @@
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
-    "planned": 5
+    "planned": 0
   },
-  "work_packages": {
-    "WP01": {
-      "actor": "finalize-tasks",
-      "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KTAR5W1JY223C9D3S8971E88",
-      "last_transition_at": "2026-06-05T02:00:46.898371+00:00"
-    },
-    "WP02": {
-      "actor": "finalize-tasks",
-      "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KTAR5XJ81KXMBMXYF0PCPZS6",
-      "last_transition_at": "2026-06-05T02:00:48.456791+00:00"
-    },
-    "WP03": {
-      "actor": "finalize-tasks",
-      "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KTAR5Z16X3EBF8X2XQ2EC4V7",
-      "last_transition_at": "2026-06-05T02:00:49.958239+00:00"
-    },
-    "WP04": {
-      "actor": "finalize-tasks",
-      "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KTAR60F0FBY3PCMVWP6KRJ5R",
-      "last_transition_at": "2026-06-05T02:00:51.424391+00:00"
-    },
-    "WP05": {
-      "actor": "finalize-tasks",
-      "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KTAR61X1V5RW76YTSQSBHPJB",
-      "last_transition_at": "2026-06-05T02:00:52.897929+00:00"
-    }
-  }
+  "work_packages": {}
 }
