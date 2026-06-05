@@ -1,7 +1,7 @@
 {
-  "event_count": 5,
-  "last_event_id": "01KT9S1ARJ472DQEQHVFW58S7S",
-  "materialized_at": "2026-06-04T16:56:32.274534+00:00",
+  "event_count": 7,
+  "last_event_id": "01KTAHX4Y7K2J2NFK7YN7HSSH2",
+  "materialized_at": "2026-06-05T00:11:09.639105+00:00",
   "mission_number": "",
   "mission_slug": "phase8-performance-discipline-01KT9RHT",
   "mission_type": "software-dev",
@@ -12,17 +12,17 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 5
+    "planned": 4
   },
   "work_packages": {
     "WP01": {
-      "actor": "finalize-tasks",
+      "actor": "implement-command",
       "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KT9S14THGHVQ3C4PWQ6HZW9T",
-      "last_transition_at": "2026-06-04T16:56:26.193263+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KTAHX4Y7K2J2NFK7YN7HSSH2",
+      "last_transition_at": "2026-06-05T00:11:09.639105+00:00"
     },
     "WP02": {
       "actor": "finalize-tasks",
