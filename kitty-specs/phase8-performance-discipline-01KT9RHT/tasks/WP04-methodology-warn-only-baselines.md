@@ -33,6 +33,8 @@ tags:
 - phase8
 - docs
 - benchmark
+agent: "codex:gpt-5:implementer-ivan:implementer"
+shell_pid: "4095245"
 ---
 
 # Work Package Prompt: WP04 - Methodology and Warn-Only Baselines
@@ -56,3 +58,7 @@ guidance without creating brittle hard timing gates.
 - Warn-only baseline artifact exists and is documented.
 - Roadmap reflects the new benchmark discipline.
 - `zig build test` passes.
+
+## Activity Log
+
+- 2026-06-05T01:00:33Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=4095245 – Implemented performance methodology docs and warn-only baseline artifact in lane commit f61a6bd; verified jq baseline schema/counts, zig build test, local-smoke JSON counts against docs/performance-baselines.json, and git diff --check.
