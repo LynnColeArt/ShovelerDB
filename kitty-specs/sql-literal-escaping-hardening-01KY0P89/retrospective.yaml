@@ -5,14 +5,14 @@ mission_number: 3
 friendly_name: SQL Literal Escaping Hardening
 mission_type: software-dev
 target_branch: main
-created_at: '2026-07-20T22:23:12.199593+00:00'
+created_at: '2026-07-20T22:26:35.253716+00:00'
 created_by:
-  kind: runtime
-  id: spec-kitty-generator
-  display: Spec Kitty Generator
+  kind: human
+  id: cli
+  display: spec-kitty retrospect
 provenance:
-  kind: runtime_post_completion
-  invoked_at: '2026-07-20T22:23:12.199593+00:00'
+  kind: explicit_create
+  invoked_at: '2026-07-20T22:26:35.253716+00:00'
   policy_resolved_from:
     enabled: <default>
     timing: <default>
@@ -29,6 +29,7 @@ provenance:
     permissions.apply_structural_changes: <default>
     precedence: <default>
     generator: <default>
+  command: spec-kitty retrospect create
 policy_source:
   enabled: <default>
   timing: <default>
@@ -53,25 +54,23 @@ helped:
   evidence_refs:
   - e-006
 - id: h-002
-  category: testing
-  summary: Exact-byte red-first cases exposed both boundary and decoding defects before the minimal production change
+  category: implementation
+  summary: Exact-byte red-first cases exposed boundary and decoding defects before the minimal production change
   evidence_refs:
   - e-005
 not_helpful:
 - id: n-001
-  category: workflow
-  summary: Protected-main placement forced manual reconciliation during tasks, acceptance, and merge
+  category: process
+  summary: Protected-main placement required manual reconciliation during tasks, acceptance, and merge
   evidence_refs:
-  - e-001
   - e-006
-  details: The runtime completed the governed operations, but protected-branch commit guards and the coordination worktree required explicit no-auto-commit and merge recovery steps.
+  details: Governed operations completed, but protected-branch commit guards and the coordination worktree required explicit no-auto-commit and merge recovery steps.
 - id: n-002
   category: tooling
   summary: Generated acceptance and review scaffolds were not ready for their later gates
   evidence_refs:
+  - e-007
   - e-008
-  - e-009
-  - e-010
   details: The acceptance matrix began with pending placeholders, the review prompt emitted an affected_files shape rejected by merge, and post-merge review required an issue matrix plus a missing pytest tool extra.
 gaps: []
 proposals: []
@@ -98,12 +97,6 @@ evidence_refs:
   kind: file
   path: kitty-specs/sql-literal-escaping-hardening-01KY0P89/analysis-report.md
 - id: e-008
-  kind: file
-  path: kitty-specs/sql-literal-escaping-hardening-01KY0P89/acceptance-matrix.json
-- id: e-009
-  kind: file
-  path: kitty-specs/sql-literal-escaping-hardening-01KY0P89/tasks/WP01-sql-literal-boundary-and-abi-regression/review-cycle-1.md
-- id: e-010
   kind: file
   path: kitty-specs/sql-literal-escaping-hardening-01KY0P89/mission-review-report.md
 generator_version: '1.0'
