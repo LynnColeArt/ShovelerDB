@@ -29,5 +29,7 @@
   "purpose_tldr": "Make single-quoted SQL literals boundary-safe and byte-faithful.",
   "slug": "sql-literal-escaping-hardening-01KY0P89",
   "target_branch": "main",
-  "topology": "lanes_with_coord"
+  "topology": "lanes_with_coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-20T21:46:56.456588+00:00"
 }
