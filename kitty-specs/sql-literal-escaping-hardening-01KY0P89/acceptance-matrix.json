@@ -2,98 +2,126 @@
   "mission_slug": "sql-literal-escaping-hardening-01KY0P89",
   "mission_number": "",
   "mission_type": "software-dev",
-  "overall_verdict": "pending",
+  "overall_verdict": "pass",
   "criteria": [
     {
       "criterion_id": "FR-001",
-      "description": "Verify FR-001 is satisfied",
+      "description": "Single-quoted literals use doubled single quotes as the only embedded-apostrophe representation.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "src/sql/tokenizer.zig and src/sql/parser.zig focused tests cover O''Reilly, one decoded apostrophe, consecutive doubled pairs, and literal boundaries; `zig build test --summary all` passed 190/190 tests.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5:reviewer-renata:reviewer",
+      "verified_at": "2026-07-20T22:13:42Z",
+      "notes": "Independently approved in WP01 review cycle 1."
     },
     {
       "criterion_id": "FR-002",
-      "description": "Verify FR-002 is satisfied",
+      "description": "The parser removes delimiters and decodes each doubled single quote exactly once while preserving all other bytes.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "Parser exact-byte cases cover empty text, apostrophes, backslashes, newlines, UTF-8, comment markers, semicolons, and consecutive quote pairs; focused parser tests passed 37/37.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5:reviewer-renata:reviewer",
+      "verified_at": "2026-07-20T22:13:42Z",
+      "notes": "The reviewer confirmed one allocator-owned linear decode with cleanup on error."
     },
     {
       "criterion_id": "FR-003",
-      "description": "Verify FR-003 is satisfied",
+      "description": "Backslashes inside single-quoted literals are ordinary data and never consume the following byte.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "Tokenizer boundary tests cover interior and trailing backslashes plus a backslash immediately before the closing delimiter; focused tokenizer tests passed 9/9.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5:reviewer-renata:reviewer",
+      "verified_at": "2026-07-20T22:13:42Z",
+      "notes": "Backslash skipping remains unchanged for the other pre-existing quoted forms."
     },
     {
       "criterion_id": "FR-004",
-      "description": "Verify FR-004 is satisfied",
+      "description": "SQL-looking punctuation remains data while a single-quoted literal is open and the first non-doubled quote closes it.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "Native and ABI tests cover comment markers, predicates, semicolons, newlines, and exact token boundaries; ABI assertions preserve seven-row cardinality.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5:reviewer-renata:reviewer",
+      "verified_at": "2026-07-20T22:13:42Z",
+      "notes": "Raw fixture bytes were inspected during independent review."
     },
     {
       "criterion_id": "FR-005",
-      "description": "Verify FR-005 is satisfied",
+      "description": "Unterminated single-quoted literals are rejected before execution without partial mutation.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "Explicit token termination metadata covers opening-only, ordinary-byte EOF, trailing-backslash EOF, and doubled-pair EOF; ABI rejection cases return parse_error with null results and unchanged row count.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5:reviewer-renata:reviewer",
+      "verified_at": "2026-07-20T22:13:42Z",
+      "notes": "Termination is not inferred from the final lexeme byte."
     },
     {
       "criterion_id": "FR-006",
-      "description": "Verify FR-006 is satisfied",
+      "description": "Native tokenizer and parser regressions cover the complete required literal matrix.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "`zig test src/sql/tokenizer.zig` passed 9/9 and `zig test src/sql/parser.zig` passed 37/37 after chronological baseline-red evidence was recorded.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5:reviewer-renata:reviewer",
+      "verified_at": "2026-07-20T22:13:42Z",
+      "notes": "The review receipt audits the red evidence and distinguishes one corrected harness-only false red."
     },
     {
       "criterion_id": "FR-007",
-      "description": "Verify FR-007 is satisfied",
+      "description": "The public C ABI inserts and retrieves required text exactly and proves statement scope remains unchanged.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "tests/integration/abi_acceptance.zig covers exact returned bytes, seven-row cardinality, parse-error/null results, and zero mutation through exported ABI functions; full suite passed.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5:reviewer-renata:reviewer",
+      "verified_at": "2026-07-20T22:13:42Z",
+      "notes": "No ABI signature, ownership, or version changed."
     },
     {
       "criterion_id": "FR-008",
-      "description": "Verify FR-008 is satisfied",
+      "description": "Hostile-case text remains byte-identical after checkpoint, close, and reopen.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "The ABI acceptance lifecycle checkpoints, closes, reopens, then rechecks exact bytes and seven-row cardinality; `zig build test --summary all` passed 190/190 tests.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5:reviewer-renata:reviewer",
+      "verified_at": "2026-07-20T22:13:42Z",
+      "notes": "Persistence and storage format are unchanged."
     },
     {
       "criterion_id": "FR-009",
-      "description": "Verify FR-009 is satisfied",
+      "description": "Existing double-quoted string and backtick-identifier behavior remains unchanged.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "Focused compatibility tests prove the pre-existing backslash-skipping boundaries for double quotes and backticks; the full 190-test suite passed.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5:reviewer-renata:reviewer",
+      "verified_at": "2026-07-20T22:13:42Z",
+      "notes": "The production condition changes backslash treatment only when the delimiter is a single quote."
     }
   ],
-  "negative_invariants": []
+  "negative_invariants": [
+    {
+      "invariant_id": "NI-001",
+      "description": "The correction must not change the public C ABI, storage format, build graph, or add a dependency.",
+      "verification_method": "reviewed_diff",
+      "verification_command": "git diff --name-only 75f96d0^ 75f96d0",
+      "result": "confirmed_absent",
+      "evidence": "Only src/sql/tokenizer.zig, src/sql/parser.zig, and tests/integration/abi_acceptance.zig changed.",
+      "verified_by": "codex:gpt-5:reviewer-renata:reviewer"
+    },
+    {
+      "invariant_id": "NI-002",
+      "description": "The correction must not redefine double-quoted strings or backtick identifiers.",
+      "verification_method": "automated_test",
+      "verification_command": "zig test src/sql/tokenizer.zig && zig test src/sql/parser.zig",
+      "result": "confirmed_absent",
+      "evidence": "Compatibility cases passed in the focused 9/9 tokenizer and 37/37 parser suites.",
+      "verified_by": "codex:gpt-5:reviewer-renata:reviewer"
+    },
+    {
+      "invariant_id": "NI-003",
+      "description": "Rejected incomplete literals must not execute or mutate database state.",
+      "verification_method": "automated_test",
+      "verification_command": "zig build test --summary all",
+      "result": "confirmed_absent",
+      "evidence": "ABI rejection cases returned parse_error with null results and preserved seven rows; the full suite passed 190/190 tests.",
+      "verified_by": "codex:gpt-5:reviewer-renata:reviewer"
+    }
+  ]
 }
