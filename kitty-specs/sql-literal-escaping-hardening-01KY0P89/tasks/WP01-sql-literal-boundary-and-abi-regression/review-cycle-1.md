@@ -1,8 +1,8 @@
 ---
 affected_files:
-  - src/sql/tokenizer.zig
-  - src/sql/parser.zig
-  - tests/integration/abi_acceptance.zig
+  - path: src/sql/tokenizer.zig
+  - path: src/sql/parser.zig
+  - path: tests/integration/abi_acceptance.zig
 blocking_findings: 0
 cycle_number: 1
 implementation_commit: 75f96d08135491e177b1be0badcfb61028708b2c
