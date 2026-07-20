@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "mission_slug": "sql-literal-escaping-hardening-01KY0P89",
+  "mission_id": "01KY0P89HS95ZP7B1J7HBBZZC3",
+  "mission_branch": "kitty/mission-sql-literal-escaping-hardening-01KY0P89",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "src/sql/parser.zig",
+        "src/sql/tokenizer.zig",
+        "tests/integration/abi_acceptance.zig"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-07-20T21:42:03.826382+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
