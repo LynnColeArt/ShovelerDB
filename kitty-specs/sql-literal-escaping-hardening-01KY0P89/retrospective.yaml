@@ -49,17 +49,30 @@ findings_status: has_findings
 helped:
 - id: h-001
   category: implementation
-  summary: WP01 completed without rejection cycles
+  summary: One cohesive WP kept tokenizer, parser, and public ABI evidence together
   evidence_refs:
   - e-006
+- id: h-002
+  category: testing
+  summary: Exact-byte red-first cases exposed both boundary and decoding defects before the minimal production change
+  evidence_refs:
+  - e-005
 not_helpful:
 - id: n-001
-  category: doc
-  summary: analysis-report.md present with findings
+  category: workflow
+  summary: Protected-main placement forced manual reconciliation during tasks, acceptance, and merge
   evidence_refs:
-  - e-007
-  details: An analysis-report.md artifact is present for this mission. Review its findings to understand documented 
-    issues and decisions.
+  - e-001
+  - e-006
+  details: The runtime completed the governed operations, but protected-branch commit guards and the coordination worktree required explicit no-auto-commit and merge recovery steps.
+- id: n-002
+  category: tooling
+  summary: Generated acceptance and review scaffolds were not ready for their later gates
+  evidence_refs:
+  - e-008
+  - e-009
+  - e-010
+  details: The acceptance matrix began with pending placeholders, the review prompt emitted an affected_files shape rejected by merge, and post-merge review required an issue matrix plus a missing pytest tool extra.
 gaps: []
 proposals: []
 evidence_refs:
@@ -84,5 +97,14 @@ evidence_refs:
 - id: e-007
   kind: file
   path: kitty-specs/sql-literal-escaping-hardening-01KY0P89/analysis-report.md
+- id: e-008
+  kind: file
+  path: kitty-specs/sql-literal-escaping-hardening-01KY0P89/acceptance-matrix.json
+- id: e-009
+  kind: file
+  path: kitty-specs/sql-literal-escaping-hardening-01KY0P89/tasks/WP01-sql-literal-boundary-and-abi-regression/review-cycle-1.md
+- id: e-010
+  kind: file
+  path: kitty-specs/sql-literal-escaping-hardening-01KY0P89/mission-review-report.md
 generator_version: '1.0'
 provenance_history: []
