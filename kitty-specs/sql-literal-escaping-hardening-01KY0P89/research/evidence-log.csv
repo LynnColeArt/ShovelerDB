@@ -1,0 +1,8 @@
+evidence_id,source_id,claim,location,planning_consequence
+E-001,SRC-001,"Doubled single quotes are the only embedded-apostrophe representation; backslash is ordinary data",FR-001 through FR-004,"Use one explicit single-quote policy with no mode"
+E-002,SRC-002,"The shared quote scanner currently skips the byte after backslash for single quote, double quote, and backtick",readQuoted,"Separate the single-quote correction from preserved double/backtick behavior"
+E-003,SRC-002,"The tokenizer reaches EOF without recording whether a closing delimiter was consumed",readQuoted,"Carry explicit termination evidence; final-byte inference is invalid"
+E-004,SRC-003,"The parser strips only outer bytes and does not reduce doubled quotes",cloneStringLiteral,"Decode once in parser-owned allocation and reject unterminated token"
+E-005,SRC-005,"The existing C ABI test already covers execute, text reads, checkpoint, close, and reopen",C ABI connector lifecycle test,"Extend one existing black-box lifecycle rather than modifying build.zig"
+E-006,SRC-004,"Every accepted syntax form needs execution evidence and historical modes are rejected unless useful",Compatibility Rule and Rejected by Design,"Add native plus execution tests; do not add a backslash escape mode"
+E-007,SRC-006,"Changes must be reviewable, use declared tests, and run on macOS/Linux",Testing Standards and Branch Strategy,"Keep one focused WP and require independent review/full suite"

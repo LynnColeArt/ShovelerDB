@@ -1,0 +1,7 @@
+source_id,source_type,locator,revision_or_digest,authority,accessed_at_utc
+SRC-001,mission_spec,kitty-specs/sql-literal-escaping-hardening-01KY0P89/spec.md,sha256:5164f7e059298c14abf54d0202cf20000d02f49769ff8861e7085ea74335c84c,approved mission contract,2026-07-20T21:24:00Z
+SRC-002,source_snapshot,git:fc7539a:src/sql/tokenizer.zig,sha256:b29e88d95626d3c53a530fb6a9c7a4a2f4bc33e92a312de22e2611c79b779dec,accepted baseline implementation,2026-07-20T21:24:00Z
+SRC-003,source_snapshot,git:fc7539a:src/sql/parser.zig,sha256:cd81f72573ea1e8012972213b701d7af1ac06de40a3a82f5a0592fdf9368dac2,accepted baseline implementation,2026-07-20T21:24:00Z
+SRC-004,project_doc,docs/sql-dialect.md,sha256:4e5cd4e3d67080b3dc93cf2036b35c198d4a56f5d01e176aa41126decf4940e3,project dialect policy,2026-07-20T21:24:00Z
+SRC-005,test_snapshot,git:fc7539a:tests/integration/abi_acceptance.zig,sha256:634e13b15d2718ee630b108be626b05403eef1d57caee1203e10d23031168204,accepted public ABI evidence,2026-07-20T21:24:00Z
+SRC-006,project_charter,.kittify/charter/charter.md,sha256:dcc24a74d493cbdaa8cbf672a9c4863f7e436e01cf97820cf37908e69f7e2916,project governance,2026-07-20T21:24:00Z
