@@ -40,7 +40,7 @@ subtasks:
 agent: "codex:gpt-5:implementer-ivan:implementer"
 shell_pid: "1807838"
 history: []
-agent_profile: implementer-ivan
+agent_profile: reviewer-renata
 authoritative_surface: src/sql
 create_intent: []
 execution_mode: code_change
@@ -49,7 +49,7 @@ owned_files:
 - src/sql/tokenizer.zig
 - src/sql/parser.zig
 - tests/integration/abi_acceptance.zig
-role: implementer
+role: reviewer
 tags: []
 ---
 
