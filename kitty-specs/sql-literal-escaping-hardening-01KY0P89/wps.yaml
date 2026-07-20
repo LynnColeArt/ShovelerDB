@@ -1,0 +1,44 @@
+work_packages:
+  - id: WP01
+    title: "SQL Literal Boundary and ABI Regression"
+    dependencies: []
+    owned_files:
+      - "src/sql/tokenizer.zig"
+      - "src/sql/parser.zig"
+      - "tests/integration/abi_acceptance.zig"
+    requirement_refs:
+      - FR-001
+      - FR-002
+      - FR-003
+      - FR-004
+      - FR-005
+      - FR-006
+      - FR-007
+      - FR-008
+      - FR-009
+      - NFR-001
+      - NFR-002
+      - NFR-003
+      - NFR-004
+      - NFR-005
+      - C-001
+      - C-002
+      - C-003
+      - C-004
+      - C-005
+      - C-006
+    plan_concern_refs:
+      - IC-01
+      - IC-02
+    subtasks:
+      - T001
+      - T002
+      - T003
+      - T004
+      - T005
+      - T006
+    prompt_file: "tasks/WP01-sql-literal-boundary-and-abi-regression.md"
+    agent_profile: "implementer-ivan"
+    role: "implementer"
+    agent: "codex"
+    model: "gpt-5"
