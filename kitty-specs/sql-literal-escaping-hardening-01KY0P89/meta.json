@@ -22,7 +22,7 @@
   "flattened": false,
   "friendly_name": "SQL Literal Escaping Hardening",
   "mission_id": "01KY0P89HS95ZP7B1J7HBBZZC3",
-  "mission_number": null,
+  "mission_number": 3,
   "mission_slug": "sql-literal-escaping-hardening-01KY0P89",
   "mission_type": "software-dev",
   "purpose_context": "Correct single-quoted SQL literal boundaries and decoding so embedding applications can preserve hostile client text without exposing trailing SQL, while retaining existing dialect and ABI compatibility.",
