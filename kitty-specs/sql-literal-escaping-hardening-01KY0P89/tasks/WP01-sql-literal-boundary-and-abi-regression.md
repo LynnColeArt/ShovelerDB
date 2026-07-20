@@ -37,8 +37,8 @@ subtasks:
 - T004
 - T005
 - T006
-agent: codex
-shell_pid: '1807838'
+agent: "codex:gpt-5:implementer-ivan:implementer"
+shell_pid: "1807838"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: src/sql
@@ -386,3 +386,7 @@ Review raw bytes before source spelling. In particular:
    undocumented surface expansion.
 8. Require chronological red evidence from baseline plus final focused and
    full-suite green results before approval.
+
+## Activity Log
+
+- 2026-07-20T21:47:39Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1807838 – Assigned agent via action command
