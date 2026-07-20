@@ -1,0 +1,15 @@
+{
+  "coordination_branch": "kitty/mission-sql-literal-escaping-hardening-01KY0P89",
+  "created_at": "2026-07-20T21:17:32.090065+00:00",
+  "flattened": false,
+  "friendly_name": "SQL Literal Escaping Hardening",
+  "mission_id": "01KY0P89HS95ZP7B1J7HBBZZC3",
+  "mission_number": null,
+  "mission_slug": "sql-literal-escaping-hardening-01KY0P89",
+  "mission_type": "software-dev",
+  "purpose_context": "Correct single-quoted SQL literal boundaries and decoding so embedding applications can preserve hostile client text without exposing trailing SQL, while retaining existing dialect and ABI compatibility.",
+  "purpose_tldr": "Make single-quoted SQL literals boundary-safe and byte-faithful.",
+  "slug": "sql-literal-escaping-hardening-01KY0P89",
+  "target_branch": "main",
+  "topology": "lanes_with_coord"
+}
