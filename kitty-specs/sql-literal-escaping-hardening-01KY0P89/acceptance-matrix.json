@@ -102,7 +102,7 @@
       "verification_method": "custom_command",
       "verification_command": "test \"$(git diff --name-only 75f96d0^ 75f96d0 | sort | tr '\\n' ' ')\" = \"src/sql/parser.zig src/sql/tokenizer.zig tests/integration/abi_acceptance.zig \"",
       "result": "confirmed_absent",
-      "evidence": "Only src/sql/tokenizer.zig, src/sql/parser.zig, and tests/integration/abi_acceptance.zig changed.",
+      "evidence": "Command exited 0: ",
       "verified_by": "codex:gpt-5:reviewer-renata:reviewer"
     },
     {
@@ -111,7 +111,7 @@
       "verification_method": "custom_command",
       "verification_command": "cd .worktrees/sql-literal-escaping-hardening-01KY0P89-lane-a && zig test src/sql/tokenizer.zig && zig test src/sql/parser.zig",
       "result": "confirmed_absent",
-      "evidence": "Compatibility cases passed in the focused 9/9 tokenizer and 37/37 parser suites.",
+      "evidence": "Command exited 0: ",
       "verified_by": "codex:gpt-5:reviewer-renata:reviewer"
     },
     {
@@ -120,7 +120,7 @@
       "verification_method": "custom_command",
       "verification_command": "cd .worktrees/sql-literal-escaping-hardening-01KY0P89-lane-a && zig build test --summary all",
       "result": "confirmed_absent",
-      "evidence": "ABI rejection cases returned parse_error with null results and preserved seven rows; the full suite passed 190/190 tests.",
+      "evidence": "Command exited 0: ",
       "verified_by": "codex:gpt-5:reviewer-renata:reviewer"
     }
   ]

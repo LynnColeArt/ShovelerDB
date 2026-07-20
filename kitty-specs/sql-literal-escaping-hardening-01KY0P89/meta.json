@@ -1,4 +1,16 @@
 {
+  "acceptance_history": [
+    {
+      "acceptance_mode": "local",
+      "accepted_at": "2026-07-20T22:18:24.203655+00:00",
+      "accepted_by": "codex",
+      "accepted_from_commit": "fb1432eaf54658580400a3f49efc93f27c00c49d"
+    }
+  ],
+  "acceptance_mode": "local",
+  "accepted_at": "2026-07-20T22:18:24.203655+00:00",
+  "accepted_by": "codex",
+  "accepted_from_commit": "fb1432eaf54658580400a3f49efc93f27c00c49d",
   "coordination_branch": "kitty/mission-sql-literal-escaping-hardening-01KY0P89",
   "created_at": "2026-07-20T21:17:32.090065+00:00",
   "flattened": false,
