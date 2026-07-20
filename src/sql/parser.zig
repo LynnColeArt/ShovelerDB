@@ -932,7 +932,7 @@ const Parser = struct {
         const token = self.advance() orelse return self.failEnd("expression");
 
         if (token.kind == .string) {
-            return .{ .literal = .{ .string = try self.cloneStringLiteral(token.lexeme) } };
+            return .{ .literal = .{ .string = try self.cloneStringLiteral(token) } };
         }
 
         if (token.kind == .number) {
@@ -1138,7 +1138,29 @@ const Parser = struct {
         return self.allocator.dupe(u8, normalizedIdentifier(token));
     }
 
-    fn cloneStringLiteral(self: *Parser, lexeme: []const u8) ParseError![]const u8 {
+    fn cloneStringLiteral(self: *Parser, token: tokenizer.Token) ParseError![]const u8 {
+        const lexeme = token.lexeme;
+        if (lexeme.len > 0 and lexeme[0] == '\'') {
+            if (!token.terminated) return self.failToken(token, .unexpected_token, "terminated string literal");
+
+            const interior = lexeme[1 .. lexeme.len - 1];
+            var decoded = try self.allocator.alloc(u8, interior.len);
+            errdefer self.allocator.free(decoded);
+
+            var source_index: usize = 0;
+            var decoded_len: usize = 0;
+            while (source_index < interior.len) {
+                decoded[decoded_len] = interior[source_index];
+                decoded_len += 1;
+                if (interior[source_index] == '\'' and source_index + 1 < interior.len and interior[source_index + 1] == '\'') {
+                    source_index += 2;
+                } else {
+                    source_index += 1;
+                }
+            }
+            return self.allocator.realloc(decoded, decoded_len);
+        }
+
         if (lexeme.len < 2) return self.allocator.dupe(u8, lexeme);
         return self.allocator.dupe(u8, lexeme[1 .. lexeme.len - 1]);
     }
@@ -1505,4 +1527,86 @@ test "parser gives comparisons higher precedence than AND" {
     try std.testing.expectEqual(ast.BinaryOperator.and_op, where_clause.operator);
     try std.testing.expectEqual(ast.BinaryOperator.equal, where_clause.left.*.binary.operator);
     try std.testing.expectEqual(ast.BinaryOperator.equal, where_clause.right.*.binary.operator);
+}
+
+test "parser decodes every valid single-quoted literal as exact bytes" {
+    const trailing_backslash_source = [_]u8{ 0x27, 0x74, 0x61, 0x69, 0x6c, 0x5c, 0x27 };
+    const hostile_source = [_]u8{ 0x27, 0x5c, 0x27, 0x27, 0x20, 0x4f, 0x52, 0x20, 0x31, 0x3d, 0x31, 0x20, 0x2d, 0x2d, 0x27 };
+    const newline_source = [_]u8{ 0x27, 0x6c, 0x69, 0x6e, 0x65, 0x31, 0x0a, 0x6c, 0x69, 0x6e, 0x65, 0x32, 0x27 };
+    const cases = [_]struct {
+        source: []const u8,
+        expected: []const u8,
+    }{
+        .{ .source = "''", .expected = "" },
+        .{ .source = "'O''Reilly'", .expected = "O'Reilly" },
+        .{ .source = "''''", .expected = "'" },
+        .{ .source = "'a\\b'", .expected = "a\\b" },
+        .{ .source = &trailing_backslash_source, .expected = &.{ 0x74, 0x61, 0x69, 0x6c, 0x5c } },
+        .{ .source = &hostile_source, .expected = &.{ 0x5c, 0x27, 0x20, 0x4f, 0x52, 0x20, 0x31, 0x3d, 0x31, 0x20, 0x2d, 0x2d } },
+        .{ .source = "'--x;/*y*/#z'", .expected = "--x;/*y*/#z" },
+        .{ .source = &newline_source, .expected = "line1\nline2" },
+        .{ .source = "'naïve 猫'", .expected = "naïve 猫" },
+        .{ .source = "'a''''b'", .expected = "a''b" },
+    };
+
+    for (cases) |case| {
+        try expectStringLiteral(case.source, case.expected);
+    }
+}
+
+test "parser rejects incomplete single-quoted literal shapes" {
+    const opening_only = [_]u8{0x27};
+    const ordinary_then_eof = [_]u8{ 0x27, 0x61, 0x62, 0x63 };
+    const terminal_backslash = [_]u8{ 0x27, 0x61, 0x5c };
+
+    try expectStringDiagnostic(&opening_only);
+    try expectStringDiagnostic(&ordinary_then_eof);
+    try expectStringDiagnostic(&terminal_backslash);
+}
+
+test "parser rejects doubled apostrophe pair at EOF despite final quote byte" {
+    const doubled_pair_then_eof = [_]u8{ 0x27, 0x27, 0x27 };
+    try expectStringDiagnostic(&doubled_pair_then_eof);
+}
+
+test "parser retains accepted double-quoted string and backtick identifier behavior" {
+    try expectStringLiteral("\"a\\\"b\"", "a\\\"b");
+
+    const result = try parseExpressionOnly(std.testing.allocator, "`a\\`b`");
+    defer result.deinit(std.testing.allocator);
+    switch (result) {
+        .expression => |expression| switch (expression) {
+            .identifier => |identifier| try std.testing.expectEqualStrings("a\\`b", identifier),
+            else => return error.ExpectedIdentifier,
+        },
+        .diagnostic => return error.ExpectedExpression,
+    }
+}
+
+fn expectStringLiteral(source: []const u8, expected: []const u8) !void {
+    const result = try parseExpressionOnly(std.testing.allocator, source);
+    defer result.deinit(std.testing.allocator);
+    switch (result) {
+        .expression => |expression| switch (expression) {
+            .literal => |literal| switch (literal) {
+                .string => |actual| try std.testing.expectEqualSlices(u8, expected, actual),
+                else => return error.ExpectedString,
+            },
+            else => return error.ExpectedLiteral,
+        },
+        .diagnostic => return error.ExpectedExpression,
+    }
+}
+
+fn expectStringDiagnostic(source: []const u8) !void {
+    const result = try parseExpressionOnly(std.testing.allocator, source);
+    defer result.deinit(std.testing.allocator);
+    switch (result) {
+        .diagnostic => |diagnostic| {
+            try std.testing.expectEqual(DiagnosticCode.unexpected_token, diagnostic.code);
+            try std.testing.expectEqual(@as(usize, 0), diagnostic.offset);
+            try std.testing.expectEqualSlices(u8, source, diagnostic.token);
+        },
+        .expression => return error.ExpectedDiagnostic,
+    }
 }
