@@ -37,10 +37,10 @@ subtasks:
 - T004
 - T005
 - T006
-agent: "codex:gpt-5:implementer-ivan:implementer"
+agent: "codex:gpt-5:reviewer-renata:reviewer"
 shell_pid: "1807838"
 history: []
-agent_profile: implementer-ivan
+agent_profile: reviewer-renata
 authoritative_surface: src/sql
 create_intent: []
 execution_mode: code_change
@@ -49,7 +49,7 @@ owned_files:
 - src/sql/tokenizer.zig
 - src/sql/parser.zig
 - tests/integration/abi_acceptance.zig
-role: implementer
+role: reviewer
 tags: []
 ---
 
@@ -390,3 +390,10 @@ Review raw bytes before source spelling. In particular:
 ## Activity Log
 
 - 2026-07-20T21:47:39Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1807838 – Assigned agent via action command
+- 2026-07-20T21:52:35Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1807838 – RED at accepted baseline fc7539a3874293540a4de6d228b3ea670a8ca2e8 (lane source unchanged; tests added only): zig test src/sql/tokenizer.zig exit 1 with semantic V05 boundary expected 27 74 61 69 6c 5c 27 but absorbed ' NEXT', V06 closed early after backslash plus doubled quote, and I05 absorbed ' OR 1=1 --'; double-quote/backtick compatibility remained green. zig test src/sql/parser.zig exit 1: V02 actual 4f 27 27 52 65 69 6c 6c 79 vs expected 4f 27 52 65 69 6c 6c 79; I01-I03 yielded expressions; I04 bytes 27 27 27 yielded expression despite doubled pair at EOF. All failures were compiled semantic assertions, not API/compile failures.
+- 2026-07-20T21:54:12Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1807838 – RED public boundary before production edits: zig build test --summary failures exit 1; 181/188 passed. The new ABI regression compiled and failed during the valid literal insertion matrix with transaction_error where ok was required (baseline scanner misbounded backslash/apostrophe input). Native failures remained the same 6 semantic assertions. Public ABI test already checks exact returned bytes/row ids, parse_error plus null result for I05/I06, unchanged row set, and checkpoint-close-reopen; no build/API production file was changed.
+- 2026-07-20T21:57:44Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1807838 – Evidence correction: the first pre-production ABI build failure reported transaction_error because the new test omitted ShovelerDB's required BEGIN/COMMIT around DML; that harness failure is not counted as SQL-literal RED evidence. The test was corrected to use the existing transaction protocol. Qualifying pre-production RED remains the compiled native V02/V05/V06 and I01-I05 tokenizer/parser failures recorded earlier.
+- 2026-07-20T21:57:46Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1807838 – GREEN: Zig 0.16.0; zig fmt --check src/sql/tokenizer.zig src/sql/parser.zig tests/integration/abi_acceptance.zig exit 0; zig test src/sql/tokenizer.zig 9/9; zig test src/sql/parser.zig 37/37; zig build test --summary all 41/41 steps and 190/190 tests; git diff --check exit 0. ABI covers V02/V04-V09 exact bytes, one mutation per insert, I05/I06 parse_error + null result + zero mutation + unchanged 7-row set, checkpoint-close-reopen exact rows. Double-quote/backtick and public ABI surface unchanged.
+- 2026-07-20T22:05:21Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1807838 – Implementation handoff for commit 75f96d08135491e177b1be0badcfb61028708b2c. Accepted baseline fc7539a3874293540a4de6d228b3ea670a8ca2e8. Red evidence captured with the final tests against baseline scanning and clone semantics: zig test src/sql/tokenizer.zig exited 1 with semantic failures for trailing backslash V05, hostile doubled-apostrophe V06, doubled-pair EOF I04, and raw-backslash boundary I05 while double-quote/backtick compatibility stayed green; zig test src/sql/parser.zig exited 1 with O double-apostrophe Reilly remaining encoded and I01/I04 returning expressions instead of diagnostics. Final green: tokenizer 9/9, parser 37/37, zig build test --summary all 190/190, zig fmt --check on all three owned files exit 0, git diff --check exit 0. ABI regression round-trips O apostrophe Reilly, interior/trailing backslashes, hostile SQL-looking text, comment markers/semicolon, Unicode, and newline byte-exactly; I05/I06 return public parse_error with null results and unchanged 7-row cardinality; checkpoint, close, and reopen preserve all 7 rows. Double-quoted strings, backtick identifiers, public ABI, storage format, dependencies, and build files are unchanged. Commit contains exactly src/sql/tokenizer.zig, src/sql/parser.zig, and tests/integration/abi_acceptance.zig. Ruff diff-scoped check not applicable: no Python files. Independent review required; implementer did not self-review. Charter checklist selector was absent, so checked-in charter and AGENTS review standards were applied.
+- 2026-07-20T22:06:54Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1807838 – Ready for independent review: implementation commit 75f96d0; tokenizer 9/9, parser 37/37, full suite 190/190; ABI hostile/boundary/reopen coverage green; exactly three owned files; worktree clean.
+- 2026-07-20T22:09:03Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=1807838 – Started review via action command
