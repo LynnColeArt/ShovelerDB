@@ -17,6 +17,7 @@
   "accepted_at": "2026-07-20T22:18:35.107110+00:00",
   "accepted_by": "codex",
   "accepted_from_commit": "fe525b76008366341930955c162f352126601128",
+  "baseline_merge_commit": "7bd71179dd07575fe8d60100edd9092d51e9306b",
   "coordination_branch": "kitty/mission-sql-literal-escaping-hardening-01KY0P89",
   "created_at": "2026-07-20T21:17:32.090065+00:00",
   "flattened": false,
