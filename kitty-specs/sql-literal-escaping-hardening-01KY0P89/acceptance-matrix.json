@@ -99,8 +99,8 @@
     {
       "invariant_id": "NI-001",
       "description": "The correction must not change the public C ABI, storage format, build graph, or add a dependency.",
-      "verification_method": "reviewed_diff",
-      "verification_command": "git diff --name-only 75f96d0^ 75f96d0",
+      "verification_method": "custom_command",
+      "verification_command": "test \"$(git diff --name-only 75f96d0^ 75f96d0 | sort | tr '\\n' ' ')\" = \"src/sql/parser.zig src/sql/tokenizer.zig tests/integration/abi_acceptance.zig \"",
       "result": "confirmed_absent",
       "evidence": "Only src/sql/tokenizer.zig, src/sql/parser.zig, and tests/integration/abi_acceptance.zig changed.",
       "verified_by": "codex:gpt-5:reviewer-renata:reviewer"
@@ -108,8 +108,8 @@
     {
       "invariant_id": "NI-002",
       "description": "The correction must not redefine double-quoted strings or backtick identifiers.",
-      "verification_method": "automated_test",
-      "verification_command": "zig test src/sql/tokenizer.zig && zig test src/sql/parser.zig",
+      "verification_method": "custom_command",
+      "verification_command": "cd .worktrees/sql-literal-escaping-hardening-01KY0P89-lane-a && zig test src/sql/tokenizer.zig && zig test src/sql/parser.zig",
       "result": "confirmed_absent",
       "evidence": "Compatibility cases passed in the focused 9/9 tokenizer and 37/37 parser suites.",
       "verified_by": "codex:gpt-5:reviewer-renata:reviewer"
@@ -117,8 +117,8 @@
     {
       "invariant_id": "NI-003",
       "description": "Rejected incomplete literals must not execute or mutate database state.",
-      "verification_method": "automated_test",
-      "verification_command": "zig build test --summary all",
+      "verification_method": "custom_command",
+      "verification_command": "cd .worktrees/sql-literal-escaping-hardening-01KY0P89-lane-a && zig build test --summary all",
       "result": "confirmed_absent",
       "evidence": "ABI rejection cases returned parse_error with null results and preserved seven rows; the full suite passed 190/190 tests.",
       "verified_by": "codex:gpt-5:reviewer-renata:reviewer"
