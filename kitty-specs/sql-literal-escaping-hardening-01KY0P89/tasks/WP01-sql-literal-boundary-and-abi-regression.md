@@ -27,6 +27,9 @@ tracker_refs: []
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-sql-literal-escaping-hardening-01KY0P89
+base_commit: ffce7aea1f8832b327a33346bfce7be732dead0e
+created_at: '2026-07-20T21:46:56.584874+00:00'
 subtasks:
 - T001
 - T002
@@ -34,7 +37,8 @@ subtasks:
 - T004
 - T005
 - T006
-agent: codex
+agent: "codex:gpt-5:implementer-ivan:implementer"
+shell_pid: "1807838"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: src/sql
@@ -382,3 +386,7 @@ Review raw bytes before source spelling. In particular:
    undocumented surface expansion.
 8. Require chronological red evidence from baseline plus final focused and
    full-suite green results before approval.
+
+## Activity Log
+
+- 2026-07-20T21:47:39Z – codex:gpt-5:implementer-ivan:implementer – shell_pid=1807838 – Assigned agent via action command
