@@ -27,8 +27,21 @@ the parts of the SQL/database model that fit local agent memory workloads.
 - `include/`: public C ABI headers for future language connectors.
 - `src/`: Zig source for the engine and CLI.
 - `tests/`: ShovelerDB-native tests.
-- `references/mariadb/`: curated MariaDB test and license references.
+- `references/mariadb/`: separately licensed MariaDB test and license references.
 - `tools/`: future import/classification tooling for MariaDB tests.
+
+## License
+
+The ShovelerDB engine is licensed under the GNU General Public License,
+version 3 only (`GPL-3.0-only`). The vendorable engine distribution is exactly
+`LICENSE`, `NOTICE`, `build.zig`, `include/**`, and `src/**`.
+
+This repository is a mixed-license aggregate. The preserved MariaDB corpus in
+`references/mariadb/**` retains its own copyrights and GPLv2 terms under
+`references/mariadb/COPYING`; it is not part of the ShovelerDB engine and must
+not be included in an engine export. Development-only descriptors under
+`tests/fixtures/mariadb-adapted/**` are also outside the engine export. See
+[`NOTICE`](NOTICE) for the authoritative distribution boundary.
 
 ## Status
 

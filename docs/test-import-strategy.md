@@ -15,8 +15,12 @@ The imported references are stored under `references/mariadb/`.
 MariaDB Server is GPLv2. The copied reference files are kept with a copy of the
 MariaDB GPLv2 license in `references/mariadb/COPYING`.
 
-ShovelerDB currently uses GPLv2 for the repository license because it includes
-MariaDB-derived reference tests.
+The ShovelerDB engine is GPL-3.0-only. The repository is a mixed-license
+aggregate: `references/mariadb/**` remains a separately licensed GPLv2
+reference corpus and is excluded from the engine distribution. The engine
+export contains only `LICENSE`, `NOTICE`, `build.zig`, `include/**`, and
+`src/**`; it never contains the imported reference corpus or adapted fixture
+descriptors. See the root `NOTICE` for the authoritative boundary.
 
 ## Initial Corpus
 
@@ -118,7 +122,9 @@ Current accepted runner features:
 
 The runner should operate on adapted fixture descriptors first. Original
 MariaDB files under `references/mariadb/` remain preserved evidence and should
-not be mutated.
+not be mutated. Both the preserved corpus and
+`tests/fixtures/mariadb-adapted/**` are development inputs outside the
+ShovelerDB engine distribution and the Invoice Manager engine export.
 
 Example:
 

@@ -1,0 +1,43 @@
+ShovelerDB licensing notice
+===========================
+
+Copyright (C) 2026 Lynn Cole
+
+Engine distribution
+-------------------
+
+The ShovelerDB engine is licensed under the GNU General Public License,
+version 3 only (GPL-3.0-only). The complete license text is in `LICENSE`.
+
+For source distributions and downstream vendoring, the engine distribution is
+defined as exactly these repository paths:
+
+- `LICENSE`
+- `NOTICE`
+- `build.zig`
+- `include/**`
+- `src/**`
+
+The repository contains development material outside that engine distribution.
+Unless a path carries a more specific notice, ShovelerDB-original material is
+also offered under GPL-3.0-only, but it is not required in the engine export
+defined above.
+
+Mixed-license repository aggregate
+----------------------------------
+
+`references/mariadb/**` is a preserved MariaDB reference corpus with its own
+copyrights and license terms. It is governed by the notices in that directory,
+including `references/mariadb/COPYING` (GNU GPL version 2). It is a separate
+work in this repository aggregate: it is not part of the ShovelerDB engine,
+is not covered or relicensed by the root `LICENSE`, and must be excluded from
+the engine distribution and from downstream engine exports.
+
+`tests/fixtures/mariadb-adapted/**` contains development-only ShovelerDB test
+descriptors. It is outside the engine distribution and is excluded from the
+Invoice Manager vendored engine export. This export boundary does not alter
+the provenance recorded in those descriptors and their source references.
+
+The presence of these separate development paths in the repository does not
+extend their terms to the ShovelerDB engine, or the engine's GPL-3.0-only terms
+to the preserved MariaDB reference corpus.
